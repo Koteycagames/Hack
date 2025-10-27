@@ -31,7 +31,6 @@
             background: rgba(0, 0, 0, 0.8);
             position: relative;
             z-index: 1;
-            text-align: center;
         }
         .terminal {
             max-width: 800px;
@@ -87,6 +86,7 @@
             max-height: 400px;
             overflow-y: auto;
             margin-bottom: 10px;
+            text-align: left; /* Changed to left alignment */
         }
         .cursor {
             display: inline-block;
@@ -163,7 +163,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         const firebaseConfig = {
             apiKey: "AIzaSyAW8_MflF9FOtd2CrReCyHhPyaxvTIe-0Q",
             authDomain: "hack-5281a.firebaseapp.com",
-            databaseURL: "https://hack-5281a-default-rtdb.firebaseio.com", // Add your Realtime Database URL
+            databaseURL: "https://hack-5281a-default-rtdb.firebaseio.com",
             projectId: "hack-5281a",
             storageBucket: "hack-5281a.firebasestorage.app",
             messagingSenderId: "450443370663",
