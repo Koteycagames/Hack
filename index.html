@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hacker Terminal</title>
+    <title>Хакерский Терминал</title>
     <style>
         body {
             background: #000;
@@ -35,7 +35,7 @@
         }
         .terminal {
             max-width: 800px;
-            display: none; /* Hidden until logged in */
+            display: none; /* Скрыт до входа */
         }
         .auth-container h2 {
             margin: 0 0 20px;
@@ -129,36 +129,36 @@
 <body>
     <canvas id="matrix"></canvas>
     <div class="auth-container" id="loginContainer">
-        <h2>Login to Hacker Terminal</h2>
-        <input type="email" id="loginEmail" placeholder="Email..." required>
-        <input type="password" id="loginPassword" placeholder="Password..." required>
-        <button onclick="handleLogin()">Login</button>
+        <h2>Вход в Хакерский Терминал</h2>
+        <input type="email" id="loginEmail" placeholder="Эл. почта..." required>
+        <input type="password" id="loginPassword" placeholder="Пароль..." required>
+        <button onclick="handleLogin()">Войти</button>
         <div class="error" id="loginError"></div>
-        <a href="#" onclick="showRegister()">No account? Register</a>
+        <a href="#" onclick="showRegister()">Нет аккаунта? Зарегистрироваться</a>
     </div>
     <div class="auth-container" id="registerContainer" style="display: none;">
-        <h2>Register for Hacker Terminal</h2>
-        <input type="email" id="registerEmail" placeholder="Email..." required>
-        <input type="password" id="registerPassword" placeholder="Password..." required>
-        <button onclick="handleRegister()">Register</button>
+        <h2>Регистрация в Хакерском Терминале</h2>
+        <input type="email" id="registerEmail" placeholder="Эл. почта..." required>
+        <input type="password" id="registerPassword" placeholder="Пароль..." required>
+        <button onclick="handleRegister()">Зарегистрироваться</button>
         <div class="error" id="registerError"></div>
-        <a href="#" onclick="showLogin()">Have an account? Sign in</a>
+        <a href="#" onclick="showLogin()">Есть аккаунт? Войти</a>
     </div>
     <div class="terminal" id="terminal">
-        <div class="output" id="output">Welcome to Hacker Terminal v7.0
-Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'download <file>', 'sysinfo', 'clear', 'scanports <target>', 'hackports <target>', 'connectport <target>', 'hackdatabase <target>', 'connectdatabase <target>', 'scandatabase <target>', 'hackadditionalprotection <target>', 'downloadfilesdatabase <target>')<span class="cursor"></span></div>
-        <input type="text" id="command" placeholder="Enter command..." onkeydown="handleCommand(event)" autofocus>
+        <div class="output" id="output">Добро пожаловать в Хакерский Терминал v7.0
+Введите команду (например, 'checkbase <цель>', 'hack <цель>', 'scan <цель>', 'download <файл>', 'sysinfo', 'clear', 'scanports <цель>', 'hackports <цель>', 'connectport <цель>', 'hackdatabase <цель>', 'connectdatabase <цель>', 'scandatabase <цель>', 'hackadditionalprotection <цель>', 'downloadfilesdatabase <цель>')<span class="cursor"></span></div>
+        <input type="text" id="command" placeholder="Введите команду..." onkeydown="handleCommand(event)">
         <div class="progress-bar" id="progressBar" style="display: none;">
             <div class="progress" id="progress"></div>
         </div>
     </div>
 
     <script type="module">
-        // Firebase imports
+        // Импорт Firebase
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 
-        // Firebase configuration
+        // Конфигурация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAW8_MflF9FOtd2CrReCyHhPyaxvTIe-0Q",
             authDomain: "hack-5281a.firebaseapp.com",
@@ -168,11 +168,11 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             appId: "1:450443370663:web:7d1b37ebab9fc71d2a7b82"
         };
 
-        // Initialize Firebase
+        // Инициализация Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // DOM elements
+        // Элементы DOM
         const loginContainer = document.getElementById('loginContainer');
         const registerContainer = document.getElementById('registerContainer');
         const terminal = document.getElementById('terminal');
@@ -182,8 +182,12 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         const registerEmail = document.getElementById('registerEmail');
         const registerPassword = document.getElementById('registerPassword');
         const registerError = document.getElementById('registerError');
+        const commandInput = document.getElementById('command');
+        const output = document.getElementById('output');
+        const progressBar = document.getElementById('progressBar');
+        const progress = document.getElementById('progress');
 
-        // Toggle between login and register forms
+        // Переключение между формами входа и регистрации
         window.showRegister = function() {
             loginContainer.style.display = 'none';
             registerContainer.style.display = 'block';
@@ -200,12 +204,12 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             registerPassword.value = '';
         };
 
-        // Handle login
+        // Обработка входа
         window.handleLogin = function() {
             const email = loginEmail.value.trim();
             const password = loginPassword.value.trim();
             if (!email || !password) {
-                loginError.textContent = 'Please enter both email and password.';
+                loginError.textContent = 'Пожалуйста, введите email и пароль.';
                 return;
             }
             signInWithEmailAndPassword(auth, email, password)
@@ -213,16 +217,16 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     loginError.textContent = '';
                 })
                 .catch(error => {
-                    loginError.textContent = `Error: ${error.message}`;
+                    loginError.textContent = `Ошибка: ${error.message}`;
                 });
         };
 
-        // Handle registration
+        // Обработка регистрации
         window.handleRegister = function() {
             const email = registerEmail.value.trim();
             const password = registerPassword.value.trim();
             if (!email || !password) {
-                registerError.textContent = 'Please enter both email and password.';
+                registerError.textContent = 'Пожалуйста, введите email и пароль.';
                 return;
             }
             createUserWithEmailAndPassword(auth, email, password)
@@ -230,31 +234,29 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     registerError.textContent = '';
                 })
                 .catch(error => {
-                    registerError.textContent = `Error: ${error.message}`;
+                    registerError.textContent = `Ошибка: ${error.message}`;
                 });
         };
 
-        // Authentication state listener
+        // Слушатель состояния авторизации
         onAuthStateChanged(auth, user => {
             if (user) {
-                // User is signed in, show terminal
+                console.log('Пользователь авторизован, отображаем терминал');
                 loginContainer.style.display = 'none';
                 registerContainer.style.display = 'none';
                 terminal.style.display = 'block';
-                commandInput.focus();
+                setTimeout(() => {
+                    commandInput.focus();
+                }, 100); // Задержка для гарантии фокуса
             } else {
-                // No user, show login
+                console.log('Пользователь не авторизован, отображаем форму входа');
                 loginContainer.style.display = 'block';
                 registerContainer.style.display = 'none';
                 terminal.style.display = 'none';
             }
         });
 
-        // Terminal logic (unchanged except for minor optimizations)
-        const output = document.getElementById('output');
-        const commandInput = document.getElementById('command');
-        const progressBar = document.getElementById('progressBar');
-        const progress = document.getElementById('progress');
+        // Логика терминала
         let isProcessing = false;
         let outputBuffer = '';
 
@@ -289,7 +291,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function checkAndSetTarget(target) {
             if (hackingState.target && hackingState.target !== target) {
-                showTextInstant(`Changing target to ${target}. Resetting hack progress.\n`, () => {});
+                showTextInstant(`Смена цели на ${target}. Сброс прогресса взлома.\n`, () => {});
                 resetState();
             }
             hackingState.target = target;
@@ -340,8 +342,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             commandInput.focus();
         }
 
-        function handleCommand(event) {
+        // Обработчик команд
+        window.handleCommand = function(event) {
             if (event.key !== 'Enter' || isProcessing) return;
+            console.log('Команда отправлена:', commandInput.value); // Отладка
             isProcessing = true;
             const input = commandInput.value.trim().toLowerCase();
             commandInput.value = '';
@@ -349,7 +353,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             output.scrollTop = output.scrollHeight;
 
             const [cmd, ...args] = input.split(' ');
-            const target = args.join(' ') || 'unknown';
+            const target = args.join(' ') || 'неизвестно';
 
             if (['scanports', 'hackports', 'connectport', 'hackdatabase', 'connectdatabase', 'scandatabase', 'hackadditionalprotection', 'downloadfilesdatabase', 'hack'].includes(cmd)) {
                 checkAndSetTarget(target);
@@ -386,14 +390,14 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             } else if (cmd === 'downloadfilesdatabase') {
                 downloadFilesDataBase(target);
             } else {
-                showTextInstant(`Unknown command: ${cmd}\n`, () => {
+                showTextInstant(`Неизвестная команда: ${cmd}\n`, () => {
                     endProcessing();
                 });
             }
-        }
+        };
 
         function checkBase(target) {
-            const entryCount = Math.floor(Math.random() * 901) + 100; // 100-1000 entries
+            const entryCount = Math.floor(Math.random() * 901) + 100; // 100-1000 записей
             const fakeData = Array.from({ length: entryCount }, (_, i) => ({
                 id: 1000 + i,
                 login: `user_${Math.random().toString(36).substring(2, 10)}`,
@@ -405,9 +409,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 status: ['active', 'suspended', 'banned'][Math.floor(Math.random() * 3)],
                 dataSize: `${Math.floor(Math.random() * 1000)}MB`
             }));
-            const lines = [`Scanning database for ${target}...\n`, `Found ${fakeData.length} entries:\n`];
+            const lines = [`Сканирование базы данных для ${target}...\n`, `Найдено ${fakeData.length} записей:\n`];
             fakeData.forEach(entry => {
-                lines.push(`ID: ${entry.id}, Login: ${entry.login}, Password: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Last Login: ${entry.lastLogin}, Role: ${entry.role}, Status: ${entry.status}, Data: ${entry.dataSize}\n`);
+                lines.push(`ID: ${entry.id}, Логин: ${entry.login}, Пароль: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Последний вход: ${entry.lastLogin}, Роль: ${entry.role}, Статус: ${entry.status}, Данные: ${entry.dataSize}\n`);
             });
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
@@ -415,15 +419,15 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         }
 
         function scanPorts(target) {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const lines = [
-                `Scanning ports for ${target}...\n`,
-                `Ports detected: 22 (SSH - protected by advanced firewall), 80 (HTTP - encrypted), 443 (HTTPS - multi-factor auth), 8080 (Proxy - intrusion detection), 3306 (MySQL - access control lists)\n`
+                `Сканирование портов для ${target}...\n`,
+                `Обнаружены порты: 22 (SSH - защищен брандмауэром), 80 (HTTP - зашифрован), 443 (HTTPS - многофакторная авторизация), 8080 (Proxy - обнаружение вторжений), 3306 (MySQL - списки контроля доступа)\n`
             ];
             for (let i = 0; i < lineCount - 2; i++) {
-                lines.push(`Port ${Math.floor(Math.random() * 65535)}: ${['open', 'closed', 'filtered'][Math.floor(Math.random() * 3)]} - ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} [${['encrypted', 'firewalled', 'rate-limited'][Math.floor(Math.random() * 3)]}]\n`);
+                lines.push(`Порт ${Math.floor(Math.random() * 65535)}: ${['открыт', 'закрыт', 'фильтруется'][Math.floor(Math.random() * 3)]} - ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} [${['зашифрован', 'защищен брандмауэром', 'ограничен скоростью'][Math.floor(Math.random() * 3)]}]\n`);
             }
-            lines.push(`All ports are protected. Need to hack them to proceed.\n`);
+            lines.push(`Все порты защищены. Нужно их взломать для продолжения.\n`);
             showTextLineByLine(lines, 0, () => {
                 hackingState.portsScanned = true;
                 endProcessing();
@@ -432,20 +436,20 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function hackPorts(target) {
             if (!hackingState.portsScanned) {
-                showTextInstant(`Permission denied 400: Scan ports first.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Сначала просканируйте порты.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const messages = [
-                `Initializing port hack for ${target}...\n`,
-                `Bypassing firewall protections...\n`,
-                `Cracking encryption on ports...\n`,
-                `Exploiting vulnerabilities...\n`
+                `Инициализация взлома портов для ${target}...\n`,
+                `Обход защиты брандмауэра...\n`,
+                `Взлом шифрования портов...\n`,
+                `Использование уязвимостей...\n`
             ];
             for (let i = 0; i < lineCount - 4; i++) {
-                messages.push(`Port ${Math.floor(Math.random() * 65535)}: Exploiting ${['CVE-' + Math.floor(Math.random() * 10000), 'Weak Auth', 'Buffer Overflow'][Math.floor(Math.random() * 3)]}...\n`);
+                messages.push(`Порт ${Math.floor(Math.random() * 65535)}: Использование ${['CVE-' + Math.floor(Math.random() * 10000), 'Слабая авторизация', 'Переполнение буфера'][Math.floor(Math.random() * 3)]}...\n`);
             }
             let messageIndex = 0;
             let progressValue = 0;
@@ -462,7 +466,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         showProgress(progressValue);
                         if (progressValue >= 100) {
                             clearInterval(interval);
-                            showTextLineByLine([`Ports hacked successfully!\n`], 0, () => {
+                            showTextLineByLine([`Порты успешно взломаны!\n`], 0, () => {
                                 hackingState.portsHacked = true;
                                 endProcessing();
                             }, 10, 20);
@@ -475,20 +479,20 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function connectPort(target) {
             if (!hackingState.portsHacked) {
-                showTextInstant(`Permission denied 400: Hack ports first.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Сначала взломайте порты.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const lines = [
-                `Connecting to hacked ports on ${target}...\n`,
-                `Establishing secure tunnel...\n`
+                `Подключение к взломанным портам на ${target}...\n`,
+                `Установка безопасного туннеля...\n`
             ];
             for (let i = 0; i < lineCount - 3; i++) {
-                lines.push(`Establishing connection to port ${Math.floor(Math.random() * 65535)}: ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} - ${Math.floor(Math.random() * 1000)}ms latency\n`);
+                lines.push(`Установка соединения с портом ${Math.floor(Math.random() * 65535)}: ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} - ${Math.floor(Math.random() * 1000)}ms задержка\n`);
             }
-            lines.push(`Connection established!\n`);
+            lines.push(`Соединение установлено!\n`);
             showTextLineByLine(lines, 0, () => {
                 hackingState.portsConnected = true;
                 endProcessing();
@@ -497,23 +501,23 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function hackDataBase(target) {
             if (!hackingState.portsConnected) {
-                showTextInstant(`Permission denied 400: Connect to ports first.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Сначала подключитесь к портам.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
             if (hackingState.requiredDbAttempts === 0) {
-                hackingState.requiredDbAttempts = Math.floor(Math.random() * 4) + 2; // Random 2-5 attempts
+                hackingState.requiredDbAttempts = Math.floor(Math.random() * 4) + 2; // 2-5 попыток
             }
             hackingState.dbHackAttempts++;
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const messages = [
-                `Attempting to hack database on ${target} (Attempt ${hackingState.dbHackAttempts})...\n`,
-                `Probing database defenses...\n`,
-                `Launching brute-force and exploit combo...\n`
+                `Попытка взлома базы данных на ${target} (Попытка ${hackingState.dbHackAttempts})...\n`,
+                `Проверка защиты базы данных...\n`,
+                `Запуск комбинации брутфорса и эксплойтов...\n`
             ];
             for (let i = 0; i < lineCount - 3; i++) {
-                messages.push(`Attempting exploit ${['SQL Injection', 'Privilege Escalation', 'Credential Stuffing'][Math.floor(Math.random() * 3)]} on ${['table_' + Math.random().toString(36).substring(2, 8), 'schema_' + Math.random().toString(36).substring(2, 8)][Math.floor(Math.random() * 2)]}...\n`);
+                messages.push(`Попытка эксплойта ${['SQL-инъекция', 'Эскалация привилегий', 'Подбор учетных данных'][Math.floor(Math.random() * 3)]} на ${['таблица_' + Math.random().toString(36).substring(2, 8), 'схема_' + Math.random().toString(36).substring(2, 8)][Math.floor(Math.random() * 2)]}...\n`);
             }
             let messageIndex = 0;
 
@@ -525,11 +529,11 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     }, 10, 20);
                 } else {
                     if (hackingState.dbHackAttempts < hackingState.requiredDbAttempts) {
-                        showTextLineByLine([`Hack failed. Defenses too strong. Try again.\n`], 0, () => {
+                        showTextLineByLine([`Взлом не удался. Защита слишком сильная. Попробуйте снова.\n`], 0, () => {
                             endProcessing();
                         }, 10, 20);
                     } else {
-                        showTextLineByLine([`Database hacked successfully after ${hackingState.dbHackAttempts} attempts!\n`], 0, () => {
+                        showTextLineByLine([`База данных успешно взломана после ${hackingState.dbHackAttempts} попыток!\n`], 0, () => {
                             hackingState.dbHacked = true;
                             endProcessing();
                         }, 10, 20);
@@ -541,20 +545,20 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function connectDataBase(target) {
             if (!hackingState.dbHacked) {
-                showTextInstant(`Permission denied 400: Hack database first.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Сначала взломайте базу данных.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const lines = [
-                `Connecting to hacked database on ${target}...\n`,
-                `Authenticating with compromised credentials...\n`
+                `Подключение к взломанной базе данных на ${target}...\n`,
+                `Аутентификация с использованием скомпрометированных учетных данных...\n`
             ];
             for (let i = 0; i < lineCount - 3; i++) {
-                lines.push(`Authenticating session ${Math.random().toString(36).substring(2, 10)}: ${['Success', 'Verifying'][Math.floor(Math.random() * 2)]}\n`);
+                lines.push(`Аутентификация сессии ${Math.random().toString(36).substring(2, 10)}: ${['Успешно', 'Проверка'][Math.floor(Math.random() * 2)]}\n`);
             }
-            lines.push(`Connection to database established!\n`);
+            lines.push(`Подключение к базе данных установлено!\n`);
             showTextLineByLine(lines, 0, () => {
                 hackingState.dbConnected = true;
                 endProcessing();
@@ -563,29 +567,29 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function scanDataBase(target) {
             if (!hackingState.dbConnected) {
-                showTextInstant(`Permission denied 400: Connect to database first.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Сначала подключитесь к базе данных.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const lines = [
-                `Scanning database for additional protections on ${target}...\n`,
-                `Analyzing security layers...\n`
+                `Сканирование базы данных на наличие дополнительных защит на ${target}...\n`,
+                `Анализ уровней безопасности...\n`
             ];
             let rand = Math.random();
             if (rand < 0.3) {
-                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 10) + 1; // 1-10 protections
+                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 10) + 1; // 1-10 защит
             } else if (rand < 0.8) {
-                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 40) + 11; // 11-50 protections
+                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 40) + 11; // 11-50 защит
             } else {
                 hackingState.additionalProtectionsCount = 0;
             }
             for (let i = 0; i < lineCount - 3; i++) {
-                lines.push(`Scanning layer ${i + 1}: ${['Encryption', 'Access Control', 'Intrusion Detection', 'Data Masking'][Math.floor(Math.random() * 4)]} - ${['Active', 'Inactive'][Math.floor(Math.random() * 2)]}\n`);
+                lines.push(`Сканирование уровня ${i + 1}: ${['Шифрование', 'Контроль доступа', 'Обнаружение вторжений', 'Маскировка данных'][Math.floor(Math.random() * 4)]} - ${['Активно', 'Неактивно'][Math.floor(Math.random() * 2)]}\n`);
             }
-            lines.push(hackingState.additionalProtectionsCount > 0 ? `Found ${hackingState.additionalProtectionsCount} additional protections. Need to hack them.\n` : `No additional protections found.\n`);
-            lines.push(`Database scan complete.\n`);
+            lines.push(hackingState.additionalProtectionsCount > 0 ? `Найдено ${hackingState.additionalProtectionsCount} дополнительных защит. Нужно их взломать.\n` : `Дополнительные защиты не найдены.\n`);
+            lines.push(`Сканирование базы данных завершено.\n`);
             showTextLineByLine(lines, 0, () => {
                 hackingState.dbScanned = true;
                 endProcessing();
@@ -594,25 +598,25 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function hackAdditionalProtection(target) {
             if (!hackingState.dbScanned) {
-                showTextInstant(`Permission denied 400: Scan database first.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Сначала просканируйте базу данных.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
             if (hackingState.additionalProtectionsCount === 0) {
-                showTextInstant(`No additional protections to hack.\n`, () => {
+                showTextInstant(`Нет дополнительных защит для взлома.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const messages = [
-                `Hacking additional protections on ${target}...\n`,
-                `Bypassing ${hackingState.additionalProtectionsCount} security layers...\n`,
-                `Exploiting weaknesses...\n`
+                `Взлом дополнительных защит на ${target}...\n`,
+                `Обход ${hackingState.additionalProtectionsCount} уровней безопасности...\n`,
+                `Использование уязвимостей...\n`
             ];
             for (let i = 0; i < lineCount - 3; i++) {
-                messages.push(`Bypassing protection ${i + 1}: ${['WAF', 'IDS', 'DLP', 'SIEM'][Math.floor(Math.random() * 4)]} - ${Math.floor(Math.random() * 100)}% complete\n`);
+                messages.push(`Обход защиты ${i + 1}: ${['WAF', 'IDS', 'DLP', 'SIEM'][Math.floor(Math.random() * 4)]} - ${Math.floor(Math.random() * 100)}% завершено\n`);
             }
             let messageIndex = 0;
             let progressValue = 0;
@@ -629,7 +633,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         showProgress(progressValue);
                         if (progressValue >= 100) {
                             clearInterval(interval);
-                            showTextLineByLine([`All additional protections hacked successfully!\n`], 0, () => {
+                            showTextLineByLine([`Все дополнительные защиты успешно взломаны!\n`], 0, () => {
                                 hackingState.protectionsHacked = true;
                                 endProcessing();
                             }, 10, 20);
@@ -642,25 +646,25 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function downloadFilesDataBase(target) {
             if (!hackingState.dbScanned) {
-                showTextInstant(`Permission denied 400: Scan database first.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Сначала Просканируйте базу данных.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
             if (hackingState.additionalProtectionsCount > 0 && !hackingState.protectionsHacked) {
-                showTextInstant(`Permission denied 400: Hack additional protections first.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Сначала взломайте дополнительные защиты.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
-            const fileCount = Math.floor(Math.random() * 101) + 200; // 200-300 files
+            const fileCount = Math.floor(Math.random() * 101) + 200; // 200-300 файлов
             const files = Array.from({ length: fileCount }, (_, i) => `db_file_${i}_${Math.random().toString(36).substring(2, 8)}.dat`);
-            const logCount = Math.floor(Math.random() * 101) + 200; // 200-300 log lines
+            const logCount = Math.floor(Math.random() * 101) + 200; // 200-300 строк логов
             const logLines = Array.from({ length: logCount }, () => {
-                return `Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 5000)}KB - Source: ${['db_table_' + Math.random().toString(36).substring(2, 8), 'archive_' + Math.random().toString(36).substring(2, 8)][Math.floor(Math.random() * 2)]}\n`;
+                return `Передача фрагмента ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 5000)}KB - Источник: ${['db_table_' + Math.random().toString(36).substring(2, 8), 'archive_' + Math.random().toString(36).substring(2, 8)][Math.floor(Math.random() * 2)]}\n`;
             });
             const messages = [
-                `Downloading ${fileCount} files from database on ${target}...\n`
+                `Скачивание ${fileCount} файлов из базы данных на ${target}...\n`
             ];
             let messageIndex = 0;
             let logIndex = 0;
@@ -682,7 +686,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         }, 10, 10);
                     } else if (fileIndex < files.length && !isProgressActive) {
                         isProgressActive = true;
-                        showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
+                        showTextLineByLine([`Скачивание ${files[fileIndex]}: `], 0, () => {
                             progressValue = 0;
                             const interval = setInterval(() => {
                                 progressValue += 20;
@@ -701,7 +705,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         processDownload();
                     }
                 } else {
-                    showTextLineByLine([`All ${fileCount} database files downloaded!\n`], 0, () => {
+                    showTextLineByLine([`Все ${fileCount} файлов базы данных скачаны!\n`], 0, () => {
                         hackingState.filesDownloaded = true;
                         endProcessing();
                     }, 10, 10);
@@ -712,12 +716,12 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function hackTarget(target) {
             if (!hackingState.filesDownloaded) {
-                showTextInstant(`Permission denied 400: Complete all preliminary steps before hacking ${target}. Follow the sequence: scanports -> hackports -> connectport -> hackdatabase -> connectdatabase -> scandatabase -> (hackadditionalprotection if needed) -> downloadfilesdatabase.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Завершите все предварительные шаги перед взломом ${target}. Следуйте последовательности: scanports -> hackports -> connectport -> hackdatabase -> connectdatabase -> scandatabase -> (hackadditionalprotection при необходимости) -> downloadfilesdatabase.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
-            const fileCount = Math.floor(Math.random() * 901) + 100; // 100-1000 files
+            const fileCount = Math.floor(Math.random() * 901) + 100; // 100-1000 файлов
             const files = Array.from({ length: fileCount }, (_, i) => [
                 `system_config_${i}.bin`,
                 `user_data_${i}.db`,
@@ -726,14 +730,14 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `backup_2025_${i}.zip`
             ][Math.floor(Math.random() * 5)]);
             const logLines = Array.from({ length: 1000 }, () => {
-                const types = ['Packet', 'Frame', 'DataChunk', 'Stream', 'Payload'];
+                const types = ['Пакет', 'Фрейм', 'Фрагмент данных', 'Поток', 'Полезная нагрузка'];
                 const type = types[Math.floor(Math.random() * types.length)];
-                return `${type} ${Math.random().toString(36).substring(2, 10)}: ${Math.floor(Math.random() * 1000)} bytes, Source: ${['192.168.1.' + Math.floor(Math.random() * 255), '10.0.0.' + Math.floor(Math.random() * 255), 'darkweb.node.' + Math.floor(Math.random() * 100)][Math.floor(Math.random() * 3)]}\n`;
+                return `${type} ${Math.random().toString(36).substring(2, 10)}: ${Math.floor(Math.random() * 1000)} байт, Источник: ${['192.168.1.' + Math.floor(Math.random() * 255), '10.0.0.' + Math.floor(Math.random() * 255), 'darkweb.node.' + Math.floor(Math.random() * 100)][Math.floor(Math.random() * 3)]}\n`;
             });
             const messages = [
-                `Initializing final hack protocol for ${target}...\n`,
-                `Access granted!\n`,
-                `Downloading files:\n`
+                `Инициализация протокола финального взлома для ${target}...\n`,
+                `Доступ получен!\n`,
+                `Скачивание файлов:\n`
             ];
             let messageIndex = 0;
             let logIndex = 0;
@@ -755,7 +759,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         }, 10, 20);
                     } else if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
                         isProgressActive = true;
-                        showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
+                        showTextLineByLine([`Скачивание ${files[fileIndex]}: `], 0, () => {
                             progressValue = 0;
                             const interval = setInterval(() => {
                                 progressValue += 20;
@@ -774,7 +778,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         processHack();
                     }
                 } else {
-                    showTextLineByLine([`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`], 0, () => {
+                    showTextLineByLine([`Все ${fileCount} файлов скачаны! ВЗЛОМ УСПЕШЕН!\n`], 0, () => {
                         endProcessing();
                     }, 10, 20);
                 }
@@ -783,30 +787,30 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         }
 
         function scanTarget(target) {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const lines = [
-                `Scanning ${target}...\n`,
-                `Ports open: 22 (SSH), 80 (HTTP), 443 (HTTPS), 8080 (Proxy), 3306 (MySQL)\n`,
-                `Vulnerabilities found: SQL Injection, XSS, Weak Passwords, Unpatched Software, RCE\n`,
-                `OS: UnknownOS v${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}\n`,
-                `Network: DarkWeb v${Math.floor(Math.random() * 7)}.0\n`,
-                `Devices detected: ${Math.floor(Math.random() * 50)}\n`
+                `Сканирование ${target}...\n`,
+                `Открытые порты: 22 (SSH), 80 (HTTP), 443 (HTTPS), 8080 (Proxy), 3306 (MySQL)\n`,
+                `Найденные уязвимости: SQL-инъекция, XSS, слабые пароли, необновленное ПО, RCE\n`,
+                `ОС: UnknownOS v${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}\n`,
+                `Сеть: DarkWeb v${Math.floor(Math.random() * 7)}.0\n`,
+                `Обнаружено устройств: ${Math.floor(Math.random() * 50)}\n`
             ];
             for (let i = 0; i < lineCount - 6; i++) {
-                lines.push(`Scanning node ${Math.random().toString(36).substring(2, 8)}: ${['Active', 'Idle', 'Offline'][Math.floor(Math.random() * 3)]}\n`);
+                lines.push(`Сканирование узла ${Math.random().toString(36).substring(2, 8)}: ${['Активен', 'Простаивает', 'Оффлайн'][Math.floor(Math.random() * 3)]}\n`);
             }
-            lines.push(`Scan complete.\n`);
+            lines.push(`Сканирование завершено.\n`);
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
             }, 10, 20);
         }
 
         function downloadFile(file) {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             let progressValue = 0;
-            const lines = [`Initiating download of ${file}...\n`];
+            const lines = [`Инициализация скачивания ${file}...\n`];
             for (let i = 0; i < lineCount - 2; i++) {
-                lines.push(`Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 500)}KB\n`);
+                lines.push(`Передача фрагмента ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 500)}KB\n`);
             }
             let lineIndex = 0;
 
@@ -822,7 +826,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         showProgress(progressValue);
                         if (progressValue >= 100) {
                             clearInterval(interval);
-                            showTextInstant(`File ${file} downloaded successfully!\n`, () => {
+                            showTextInstant(`Файл ${file} успешно скачан!\n`, () => {
                                 endProcessing();
                             });
                         }
@@ -833,27 +837,27 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         }
 
         function showSysInfo() {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const lines = [
-                `System Information:\n`,
-                `OS: HAX0R v13.37\n`,
-                `CPU: Quantum Core i9-9999X @ 5.0GHz\n`,
-                `Memory: 128GB DDR5\n`,
-                `Storage: 2TB NVMe SSD\n`,
-                `Network: DarkWeb v6.0, 1Gbps\n`,
-                `Uptime: ${Math.floor(Math.random() * 1000)} hours\n`,
-                `Processes: ${Math.floor(Math.random() * 200)}\n`
+                `Информация о системе:\n`,
+                `ОС: HAX0R v13.37\n`,
+                `Процессор: Quantum Core i9-9999X @ 5.0GHz\n`,
+                `Память: 128GB DDR5\n`,
+                `Хранилище: 2TB NVMe SSD\n`,
+                `Сеть: DarkWeb v6.0, 1Gbps\n`,
+                `Время работы: ${Math.floor(Math.random() * 1000)} часов\n`,
+                `Процессы: ${Math.floor(Math.random() * 200)}\n`
             ];
             for (let i = 0; i < lineCount - 8; i++) {
-                lines.push(`Process ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 1000)}KB RAM usage\n`);
+                lines.push(`Процесс ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 1000)}KB использования ОЗУ\n`);
             }
-            lines.push(`Status: Online\n`);
+            lines.push(`Статус: Онлайн\n`);
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
             }, 10, 20);
         }
 
-        // Matrix effect
+        // Эффект матрицы
         const canvas = document.getElementById('matrix');
         const ctx = canvas.getContext('2d');
         canvas.height = window.innerHeight;
