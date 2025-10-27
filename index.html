@@ -80,7 +80,7 @@
 <body>
     <canvas id="matrix"></canvas>
     <div class="terminal">
-        <div class="output" id="output">Welcome to Hacker Terminal v6.0
+        <div class="output" id="output">Welcome to Hacker Terminal v7.0
 Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'download <file>', 'sysinfo', 'clear')<span class="cursor"></span></div>
         <input type="text" id="command" placeholder="Enter command..." onkeydown="handleCommand(event)">
         <div class="progress-bar" id="progressBar" style="display: none;">
@@ -104,14 +104,14 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             if (callback) callback();
         }
 
-        function showTextLineByLine(lines, index = 0, callback, batchSize = 10) {
+        function showTextLineByLine(lines, index = 0, callback, batchSize = 5, delay = 50) {
             if (index < lines.length) {
                 const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
                 outputBuffer += batch.join('');
                 if (index % batchSize === 0 || index === lines.length - 1) {
                     flushBuffer();
                 }
-                setTimeout(() => showTextLineByLine(lines, index + batchSize, callback, batchSize), 50);
+                setTimeout(() => showTextLineByLine(lines, index + batchSize, callback, batchSize, delay), delay);
             } else {
                 flushBuffer(callback);
             }
@@ -186,7 +186,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             });
             showTextLineByLine(lines, 0, () => {
                 isProcessing = false;
-            }, 5); // Smaller batch size for smoother rendering
+            }, 5, 50); // 50ms delay for checkbase
         }
 
         function hackTarget(target) {
@@ -225,7 +225,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHack();
-                    });
+                    }, 5, 150); // 150ms delay for hack messages
                 }
                 // Output logs or files
                 else if (logIndex < logLines.length || fileIndex < files.length) {
@@ -234,7 +234,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         showTextLineByLine([logLines[logIndex]], 0, () => {
                             logIndex++;
                             processHack();
-                        }, 5);
+                        }, 5, 150); // 150ms delay for hack logs
                     }
                     // Handle file downloads with progress bar
                     else if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
@@ -250,17 +250,17 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                                         isProgressActive = false;
                                         fileIndex++;
                                         processHack();
-                                    });
+                                    }, 5, 150);
                                 }
-                            }, 25); // Faster progress bar (1 second)
-                        });
+                            }, 25); // Fast progress bar (1 second)
+                        }, 5, 150);
                     } else {
                         processHack();
                     }
                 } else {
                     showTextLineByLine([`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`], 0, () => {
                         isProcessing = false;
-                    });
+                    }, 5, 150);
                 }
             }
             processHack();
