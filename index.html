@@ -22,15 +22,64 @@
             left: 0;
             z-index: -1;
         }
-        .terminal {
+        .auth-container, .terminal {
             width: 80%;
-            max-width: 800px;
+            max-width: 400px;
             padding: 20px;
             border: 2px solid #0f0;
             box-shadow: 0 0 20px #0f0;
             background: rgba(0, 0, 0, 0.8);
             position: relative;
             z-index: 1;
+            text-align: center;
+        }
+        .terminal {
+            max-width: 800px;
+            display: none; /* Hidden until logged in */
+        }
+        .auth-container h2 {
+            margin: 0 0 20px;
+            font-size: 18px;
+        }
+        .auth-container input {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            box-sizing: border-box;
+            margin: 5px 0;
+        }
+        .auth-container input:focus {
+            outline: none;
+            border-color: #0a0;
+        }
+        .auth-container button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .auth-container button:hover {
+            background: #0a0;
+        }
+        .auth-container a {
+            color: #0f0;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .auth-container a:hover {
+            color: #0a0;
+        }
+        .auth-container .error {
+            color: #f00;
+            font-size: 14px;
+            margin: 10px 0;
         }
         .output {
             white-space: pre-wrap;
@@ -49,7 +98,7 @@
         @keyframes blink {
             50% { opacity: 0; }
         }
-        input {
+        .terminal input {
             background: #000;
             color: #0f0;
             border: 1px solid #0f0;
@@ -58,7 +107,7 @@
             width: 100%;
             box-sizing: border-box;
         }
-        input:focus {
+        .terminal input:focus {
             outline: none;
             border-color: #0a0;
         }
@@ -79,7 +128,23 @@
 </head>
 <body>
     <canvas id="matrix"></canvas>
-    <div class="terminal">
+    <div class="auth-container" id="loginContainer">
+        <h2>Login to Hacker Terminal</h2>
+        <input type="email" id="loginEmail" placeholder="Email..." required>
+        <input type="password" id="loginPassword" placeholder="Password..." required>
+        <button onclick="handleLogin()">Login</button>
+        <div class="error" id="loginError"></div>
+        <a href="#" onclick="showRegister()">No account? Register</a>
+    </div>
+    <div class="auth-container" id="registerContainer" style="display: none;">
+        <h2>Register for Hacker Terminal</h2>
+        <input type="email" id="registerEmail" placeholder="Email..." required>
+        <input type="password" id="registerPassword" placeholder="Password..." required>
+        <button onclick="handleRegister()">Register</button>
+        <div class="error" id="registerError"></div>
+        <a href="#" onclick="showLogin()">Have an account? Sign in</a>
+    </div>
+    <div class="terminal" id="terminal">
         <div class="output" id="output">Welcome to Hacker Terminal v7.0
 Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'download <file>', 'sysinfo', 'clear', 'scanports <target>', 'hackports <target>', 'connectport <target>', 'hackdatabase <target>', 'connectdatabase <target>', 'scandatabase <target>', 'hackadditionalprotection <target>', 'downloadfilesdatabase <target>')<span class="cursor"></span></div>
         <input type="text" id="command" placeholder="Enter command..." onkeydown="handleCommand(event)" autofocus>
@@ -88,7 +153,104 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        // Firebase imports
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAW8_MflF9FOtd2CrReCyHhPyaxvTIe-0Q",
+            authDomain: "hack-5281a.firebaseapp.com",
+            projectId: "hack-5281a",
+            storageBucket: "hack-5281a.firebasestorage.app",
+            messagingSenderId: "450443370663",
+            appId: "1:450443370663:web:7d1b37ebab9fc71d2a7b82"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // DOM elements
+        const loginContainer = document.getElementById('loginContainer');
+        const registerContainer = document.getElementById('registerContainer');
+        const terminal = document.getElementById('terminal');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const registerEmail = document.getElementById('registerEmail');
+        const registerPassword = document.getElementById('registerPassword');
+        const registerError = document.getElementById('registerError');
+
+        // Toggle between login and register forms
+        window.showRegister = function() {
+            loginContainer.style.display = 'none';
+            registerContainer.style.display = 'block';
+            loginError.textContent = '';
+            loginEmail.value = '';
+            loginPassword.value = '';
+        };
+
+        window.showLogin = function() {
+            registerContainer.style.display = 'none';
+            loginContainer.style.display = 'block';
+            registerError.textContent = '';
+            registerEmail.value = '';
+            registerPassword.value = '';
+        };
+
+        // Handle login
+        window.handleLogin = function() {
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value.trim();
+            if (!email || !password) {
+                loginError.textContent = 'Please enter both email and password.';
+                return;
+            }
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    loginError.textContent = '';
+                })
+                .catch(error => {
+                    loginError.textContent = `Error: ${error.message}`;
+                });
+        };
+
+        // Handle registration
+        window.handleRegister = function() {
+            const email = registerEmail.value.trim();
+            const password = registerPassword.value.trim();
+            if (!email || !password) {
+                registerError.textContent = 'Please enter both email and password.';
+                return;
+            }
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    registerError.textContent = '';
+                })
+                .catch(error => {
+                    registerError.textContent = `Error: ${error.message}`;
+                });
+        };
+
+        // Authentication state listener
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // User is signed in, show terminal
+                loginContainer.style.display = 'none';
+                registerContainer.style.display = 'none';
+                terminal.style.display = 'block';
+                commandInput.focus();
+            } else {
+                // No user, show login
+                loginContainer.style.display = 'block';
+                registerContainer.style.display = 'none';
+                terminal.style.display = 'none';
+            }
+        });
+
+        // Terminal logic (unchanged except for minor optimizations)
         const output = document.getElementById('output');
         const commandInput = document.getElementById('command');
         const progressBar = document.getElementById('progressBar');
@@ -141,7 +303,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             if (callback) callback();
         }
 
-        function showTextLineByLine(lines, index = 0, callback, batchSize = 5, delay = 50) {
+        function showTextLineByLine(lines, index = 0, callback, batchSize = 10, delay = 20) {
             if (index < lines.length) {
                 const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
                 outputBuffer += batch.join('');
@@ -249,7 +411,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             });
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 10, 30); // Increased batch size and reduced delay for faster display
+            }, 10, 20);
         }
 
         function scanPorts(target) {
@@ -265,7 +427,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.portsScanned = true;
                 endProcessing();
-            }, 10, 30);
+            }, 10, 20);
         }
 
         function hackPorts(target) {
@@ -293,7 +455,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHackPorts();
-                    }, 10, 30);
+                    }, 10, 20);
                 } else {
                     const interval = setInterval(() => {
                         progressValue += 10;
@@ -303,7 +465,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                             showTextLineByLine([`Ports hacked successfully!\n`], 0, () => {
                                 hackingState.portsHacked = true;
                                 endProcessing();
-                            }, 10, 30);
+                            }, 10, 20);
                         }
                     }, 50);
                 }
@@ -330,7 +492,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.portsConnected = true;
                 endProcessing();
-            }, 10, 30);
+            }, 10, 20);
         }
 
         function hackDataBase(target) {
@@ -360,17 +522,17 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHackDb();
-                    }, 10, 30);
+                    }, 10, 20);
                 } else {
                     if (hackingState.dbHackAttempts < hackingState.requiredDbAttempts) {
                         showTextLineByLine([`Hack failed. Defenses too strong. Try again.\n`], 0, () => {
                             endProcessing();
-                        }, 10, 30);
+                        }, 10, 20);
                     } else {
                         showTextLineByLine([`Database hacked successfully after ${hackingState.dbHackAttempts} attempts!\n`], 0, () => {
                             hackingState.dbHacked = true;
                             endProcessing();
-                        }, 10, 30);
+                        }, 10, 20);
                     }
                 }
             }
@@ -396,7 +558,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.dbConnected = true;
                 endProcessing();
-            }, 10, 30);
+            }, 10, 20);
         }
 
         function scanDataBase(target) {
@@ -427,7 +589,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.dbScanned = true;
                 endProcessing();
-            }, 10, 30);
+            }, 10, 20);
         }
 
         function hackAdditionalProtection(target) {
@@ -460,7 +622,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHackProtections();
-                    }, 10, 30);
+                    }, 10, 20);
                 } else {
                     const interval = setInterval(() => {
                         progressValue += 10;
@@ -470,7 +632,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                             showTextLineByLine([`All additional protections hacked successfully!\n`], 0, () => {
                                 hackingState.protectionsHacked = true;
                                 endProcessing();
-                            }, 10, 30);
+                            }, 10, 20);
                         }
                     }, 50);
                 }
@@ -491,14 +653,15 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const fileCount = 1000; // Fixed 1000 files for downloadfilesdatabase
+            const fileCount = Math.floor(Math.random() * 101) + 200; // 200-300 files
             const files = Array.from({ length: fileCount }, (_, i) => `db_file_${i}_${Math.random().toString(36).substring(2, 8)}.dat`);
+            const logCount = Math.floor(Math.random() * 101) + 200; // 200-300 log lines
+            const logLines = Array.from({ length: logCount }, () => {
+                return `Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 5000)}KB - Source: ${['db_table_' + Math.random().toString(36).substring(2, 8), 'archive_' + Math.random().toString(36).substring(2, 8)][Math.floor(Math.random() * 2)]}\n`;
+            });
             const messages = [
                 `Downloading ${fileCount} files from database on ${target}...\n`
             ];
-            const logLines = Array.from({ length: 1000 }, () => {
-                return `Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 5000)}KB - Source: ${['db_table_' + Math.random().toString(36).substring(2, 8), 'archive_' + Math.random().toString(36).substring(2, 8)][Math.floor(Math.random() * 2)]}\n`;
-            });
             let messageIndex = 0;
             let logIndex = 0;
             let fileIndex = 0;
@@ -510,19 +673,19 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processDownload();
-                    }, 10, 30);
+                    }, 10, 10);
                 } else if (logIndex < logLines.length || fileIndex < files.length) {
                     if (logIndex < logLines.length && Math.random() < 0.5) {
                         showTextLineByLine([logLines[logIndex]], 0, () => {
                             logIndex++;
                             processDownload();
-                        }, 10, 30);
+                        }, 10, 10);
                     } else if (fileIndex < files.length && !isProgressActive) {
                         isProgressActive = true;
                         showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
                             progressValue = 0;
                             const interval = setInterval(() => {
-                                progressValue += 10;
+                                progressValue += 20;
                                 showProgress(progressValue);
                                 if (progressValue >= 100) {
                                     clearInterval(interval);
@@ -530,10 +693,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                                         isProgressActive = false;
                                         fileIndex++;
                                         processDownload();
-                                    }, 10, 30);
+                                    }, 10, 10);
                                 }
-                            }, 25);
-                        }, 10, 30);
+                            }, 20);
+                        }, 10, 10);
                     } else {
                         processDownload();
                     }
@@ -541,7 +704,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([`All ${fileCount} database files downloaded!\n`], 0, () => {
                         hackingState.filesDownloaded = true;
                         endProcessing();
-                    }, 10, 30);
+                    }, 10, 10);
                 }
             }
             processDownload();
@@ -583,19 +746,19 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHack();
-                    }, 10, 30);
+                    }, 10, 20);
                 } else if (logIndex < logLines.length || fileIndex < files.length) {
                     if (logIndex < logLines.length && Math.random() < 0.5) {
                         showTextLineByLine([logLines[logIndex]], 0, () => {
                             logIndex++;
                             processHack();
-                        }, 10, 30);
+                        }, 10, 20);
                     } else if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
                         isProgressActive = true;
                         showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
                             progressValue = 0;
                             const interval = setInterval(() => {
-                                progressValue += 10;
+                                progressValue += 20;
                                 showProgress(progressValue);
                                 if (progressValue >= 100) {
                                     clearInterval(interval);
@@ -603,17 +766,17 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                                         isProgressActive = false;
                                         fileIndex++;
                                         processHack();
-                                    }, 10, 30);
+                                    }, 10, 20);
                                 }
-                            }, 25);
-                        }, 10, 30);
+                            }, 20);
+                        }, 10, 20);
                     } else {
                         processHack();
                     }
                 } else {
                     showTextLineByLine([`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`], 0, () => {
                         endProcessing();
-                    }, 10, 30);
+                    }, 10, 20);
                 }
             }
             processHack();
@@ -635,7 +798,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             lines.push(`Scan complete.\n`);
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 10, 30);
+            }, 10, 20);
         }
 
         function downloadFile(file) {
@@ -652,10 +815,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([lines[lineIndex]], 0, () => {
                         lineIndex++;
                         processDownload();
-                    }, 10, 30);
+                    }, 10, 20);
                 } else {
                     const interval = setInterval(() => {
-                        progressValue += 10;
+                        progressValue += 20;
                         showProgress(progressValue);
                         if (progressValue >= 100) {
                             clearInterval(interval);
@@ -663,7 +826,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                                 endProcessing();
                             });
                         }
-                    }, 25);
+                    }, 20);
                 }
             }
             processDownload();
@@ -687,7 +850,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             lines.push(`Status: Online\n`);
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 10, 30);
+            }, 10, 20);
         }
 
         // Matrix effect
@@ -715,8 +878,6 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             }
         }
         setInterval(drawMatrix, 33);
-
-        commandInput.focus();
     </script>
 </body>
 </html>
