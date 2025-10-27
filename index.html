@@ -80,7 +80,7 @@
 <body>
     <canvas id="matrix"></canvas>
     <div class="terminal">
-        <div class="output" id="output">Welcome to Hacker Terminal v4.0
+        <div class="output" id="output">Welcome to Hacker Terminal v5.0
 Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'download <file>', 'sysinfo', 'clear')<span class="cursor"></span></div>
         <input type="text" id="command" placeholder="Enter command..." onkeydown="handleCommand(event)">
         <div class="progress-bar" id="progressBar" style="display: none;">
@@ -95,11 +95,15 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         const progress = document.getElementById('progress');
         let isProcessing = false;
 
-        function showText(text, callback) {
-            output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + text;
-            output.innerHTML += '<span class="cursor"></span>';
-            output.scrollTop = output.scrollHeight; // Auto-scroll to bottom
-            if (callback) callback();
+        function showTextLineByLine(lines, index = 0, callback) {
+            if (index < lines.length) {
+                output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + lines[index];
+                output.innerHTML += '<span class="cursor"></span>';
+                output.scrollTop = output.scrollHeight;
+                setTimeout(() => showTextLineByLine(lines, index + 1, callback), 50);
+            } else if (callback) {
+                callback();
+            }
         }
 
         function showProgress(percentage, callback) {
@@ -112,6 +116,13 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     callback();
                 }, 200);
             }
+        }
+
+        function showTextInstant(text, callback) {
+            output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + text;
+            output.innerHTML += '<span class="cursor"></span>';
+            output.scrollTop = output.scrollHeight;
+            if (callback) callback();
         }
 
         function handleCommand(event) {
@@ -139,7 +150,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 isProcessing = false;
                 output.innerHTML += '<span class="cursor"></span>';
             } else {
-                showText(`Unknown command: ${cmd}\n`, () => {
+                showTextInstant(`Unknown command: ${cmd}\n`, () => {
                     isProcessing = false;
                 });
             }
@@ -157,11 +168,11 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 status: ['active', 'suspended', 'banned'][Math.floor(Math.random() * 3)],
                 dataSize: `${Math.floor(Math.random() * 1000)}MB`
             }));
-            let outputText = `Scanning database for ${target}...\nFound ${fakeData.length} entries:\n`;
+            const lines = [`Scanning database for ${target}...\n`, `Found ${fakeData.length} entries:\n`];
             fakeData.forEach(entry => {
-                outputText += `ID: ${entry.id}, Login: ${entry.login}, Password: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Last Login: ${entry.lastLogin}, Role: ${entry.role}, Status: ${entry.status}, Data: ${entry.dataSize}\n`;
+                lines.push(`ID: ${entry.id}, Login: ${entry.login}, Password: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Last Login: ${entry.lastLogin}, Role: ${entry.role}, Status: ${entry.status}, Data: ${entry.dataSize}\n`);
             });
-            showText(outputText, () => {
+            showTextLineByLine(lines, 0, () => {
                 isProcessing = false;
             });
         }
@@ -175,6 +186,11 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `network_logs_${i}.txt`,
                 `backup_2025_${i}.zip`
             ][Math.floor(Math.random() * 5)]);
+            const logLines = Array.from({ length: 300 }, () => {
+                const types = ['Packet', 'Frame', 'DataChunk', 'Stream', 'Payload'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                return `${type} ${Math.random().toString(36).substring(2, 10)}: ${Math.floor(Math.random() * 1000)} bytes, Source: ${['192.168.1.' + Math.floor(Math.random() * 255), '10.0.0.' + Math.floor(Math.random() * 255), 'darkweb.node.' + Math.floor(Math.random() * 100)][Math.floor(Math.random() * 3)]}\n`;
+            });
             const messages = [
                 `Initializing hack protocol for ${target}...\n`,
                 `Connecting to ${target}...\n`,
@@ -186,46 +202,51 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `Downloading files:\n`
             ];
             let messageIndex = 0;
+            let logIndex = 0;
             let fileIndex = 0;
             let progressValue = 0;
             let isProgressActive = false;
 
             function processHack() {
+                // Output initial messages or logs
                 if (messageIndex < messages.length) {
-                    showText(messages[messageIndex], () => {
+                    showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHack();
                     });
-                } else if (fileIndex < files.length) {
-                    if (!isProgressActive) {
+                } else if (logIndex < logLines.length || fileIndex < files.length) {
+                    // Output logs
+                    if (logIndex < logLines.length && Math.random() < 0.5) {
+                        showTextLineByLine([logLines[logIndex]], 0, () => {
+                            logIndex++;
+                            processHack();
+                        });
+                    }
+                    // Handle file downloads with progress bar
+                    if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
                         isProgressActive = true;
-                        showText(`Downloading ${files[fileIndex]}: `);
-                        progressValue = 0;
-                        const interval = setInterval(() => {
-                            progressValue += 5;
-                            showProgress(progressValue);
-                            if (progressValue >= 100) {
-                                clearInterval(interval);
-                                showText(`100%\n`, () => {
-                                    isProgressActive = false;
-                                    fileIndex++;
-                                    processHack();
-                                });
-                            }
-                        }, 50); // Faster progress bar (2 seconds total)
+                        showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
+                            progressValue = 0;
+                            const interval = setInterval(() => {
+                                progressValue += 10;
+                                showProgress(progressValue);
+                                if (progressValue >= 100) {
+                                    clearInterval(interval);
+                                    showTextLineByLine(['100%\n'], 0, () => {
+                                        isProgressActive = false;
+                                        fileIndex++;
+                                        processHack();
+                                    });
+                                }
+                            }, 50); // Fast progress bar (2 seconds)
+                        });
+                    } else {
+                        processHack();
                     }
                 } else {
-                    showText(`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`, () => {
+                    showTextLineByLine([`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`], 0, () => {
                         isProcessing = false;
                     });
-                }
-
-                // Parallel text output
-                if (Math.random() < 0.3 && !isProgressActive) {
-                    const randomData = `Packet ${Math.random().toString(36).substring(2, 10)}: ${Math.floor(Math.random() * 1000)} bytes received\n`;
-                    output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + randomData;
-                    output.innerHTML += '<span class="cursor"></span>';
-                    output.scrollTop = output.scrollHeight;
                 }
             }
             processHack();
@@ -239,20 +260,20 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `Network: DarkWeb v${Math.floor(Math.random() * 7)}.0\n` +
                 `Devices detected: ${Math.floor(Math.random() * 50)}\n` +
                 `Scan complete.\n`;
-            showText(outputText, () => {
+            showTextInstant(outputText, () => {
                 isProcessing = false;
             });
         }
 
         function downloadFile(file) {
             let progressValue = 0;
-            showText(`Initiating download of ${file}...\n`, () => {
+            showTextInstant(`Initiating download of ${file}...\n`, () => {
                 const interval = setInterval(() => {
                     progressValue += 10;
                     showProgress(progressValue);
                     if (progressValue >= 100) {
                         clearInterval(interval);
-                        showText(`File ${file} downloaded successfully!\n`, () => {
+                        showTextInstant(`File ${file} downloaded successfully!\n`, () => {
                             isProcessing = false;
                         });
                     }
@@ -263,7 +284,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         output.innerHTML += '<span class="cursor"></span>';
                         output.scrollTop = output.scrollHeight;
                     }
-                }, 50); // Faster progress bar
+                }, 50);
             });
         }
 
@@ -277,7 +298,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `Uptime: ${Math.floor(Math.random() * 1000)} hours\n` +
                 `Processes: ${Math.floor(Math.random() * 200)}\n` +
                 `Status: Online\n`;
-            showText(outputText, () => {
+            showTextInstant(outputText, () => {
                 isProcessing = false;
             });
         }
