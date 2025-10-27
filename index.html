@@ -80,7 +80,7 @@
 <body>
     <canvas id="matrix"></canvas>
     <div class="terminal">
-        <div class="output" id="output">Welcome to Hacker Terminal v5.0
+        <div class="output" id="output">Welcome to Hacker Terminal v6.0
 Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'download <file>', 'sysinfo', 'clear')<span class="cursor"></span></div>
         <input type="text" id="command" placeholder="Enter command..." onkeydown="handleCommand(event)">
         <div class="progress-bar" id="progressBar" style="display: none;">
@@ -94,15 +94,26 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         const progressBar = document.getElementById('progressBar');
         const progress = document.getElementById('progress');
         let isProcessing = false;
+        let outputBuffer = '';
 
-        function showTextLineByLine(lines, index = 0, callback) {
+        function flushBuffer(callback) {
+            output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + outputBuffer;
+            output.innerHTML += '<span class="cursor"></span>';
+            output.scrollTop = output.scrollHeight;
+            outputBuffer = '';
+            if (callback) callback();
+        }
+
+        function showTextLineByLine(lines, index = 0, callback, batchSize = 10) {
             if (index < lines.length) {
-                output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + lines[index];
-                output.innerHTML += '<span class="cursor"></span>';
-                output.scrollTop = output.scrollHeight;
-                setTimeout(() => showTextLineByLine(lines, index + 1, callback), 50);
-            } else if (callback) {
-                callback();
+                const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
+                outputBuffer += batch.join('');
+                if (index % batchSize === 0 || index === lines.length - 1) {
+                    flushBuffer();
+                }
+                setTimeout(() => showTextLineByLine(lines, index + batchSize, callback, batchSize), 50);
+            } else {
+                flushBuffer(callback);
             }
         }
 
@@ -114,7 +125,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     progressBar.style.display = 'none';
                     progress.style.width = '0%';
                     callback();
-                }, 200);
+                }, 100);
             }
         }
 
@@ -131,6 +142,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             const input = commandInput.value.trim().toLowerCase();
             commandInput.value = '';
             output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + `\n> ${input}\n`;
+            output.scrollTop = output.scrollHeight;
 
             const [cmd, ...args] = input.split(' ');
             const target = args.join(' ') || 'unknown';
@@ -174,7 +186,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             });
             showTextLineByLine(lines, 0, () => {
                 isProcessing = false;
-            });
+            }, 5); // Smaller batch size for smoother rendering
         }
 
         function hackTarget(target) {
@@ -208,22 +220,24 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             let isProgressActive = false;
 
             function processHack() {
-                // Output initial messages or logs
+                // Output initial messages
                 if (messageIndex < messages.length) {
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHack();
                     });
-                } else if (logIndex < logLines.length || fileIndex < files.length) {
+                }
+                // Output logs or files
+                else if (logIndex < logLines.length || fileIndex < files.length) {
                     // Output logs
                     if (logIndex < logLines.length && Math.random() < 0.5) {
                         showTextLineByLine([logLines[logIndex]], 0, () => {
                             logIndex++;
                             processHack();
-                        });
+                        }, 5);
                     }
                     // Handle file downloads with progress bar
-                    if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
+                    else if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
                         isProgressActive = true;
                         showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
                             progressValue = 0;
@@ -238,7 +252,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                                         processHack();
                                     });
                                 }
-                            }, 50); // Fast progress bar (2 seconds)
+                            }, 25); // Faster progress bar (1 second)
                         });
                     } else {
                         processHack();
@@ -277,14 +291,13 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                             isProcessing = false;
                         });
                     }
-                    // Parallel random data
                     if (Math.random() < 0.2) {
                         const randomData = `Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 500)}KB\n`;
                         output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + randomData;
                         output.innerHTML += '<span class="cursor"></span>';
                         output.scrollTop = output.scrollHeight;
                     }
-                }, 50);
+                }, 25);
             });
         }
 
