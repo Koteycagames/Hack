@@ -157,11 +157,13 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         // Firebase imports
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+        import { getDatabase, ref, set, get, update } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAW8_MflF9FOtd2CrReCyHhPyaxvTIe-0Q",
             authDomain: "hack-5281a.firebaseapp.com",
+            databaseURL: "https://hack-5281a-default-rtdb.firebaseio.com", // Add your Realtime Database URL
             projectId: "hack-5281a",
             storageBucket: "hack-5281a.firebasestorage.app",
             messagingSenderId: "450443370663",
@@ -171,6 +173,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getDatabase(app);
 
         // DOM elements
         const loginContainer = document.getElementById('loginContainer');
@@ -205,47 +208,60 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         };
 
         // Handle login
-        window.handleLogin = function() {
+        window.handleLogin = async function() {
             const email = loginEmail.value.trim();
             const password = loginPassword.value.trim();
             if (!email || !password) {
                 loginError.textContent = 'Please enter both email and password.';
                 return;
             }
-            signInWithEmailAndPassword(auth, email, password)
-                .then(() => {
-                    loginError.textContent = '';
-                    loginContainer.style.display = 'none';
-                    terminal.style.display = 'block';
-                    setTimeout(() => {
-                        commandInput.focus();
-                    }, 100); // Ensure focus after DOM update
-                })
-                .catch(error => {
-                    loginError.textContent = `Error: ${error.message}`;
-                });
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                // Check if user is banned
+                const userRef = ref(db, `users/${user.uid}`);
+                const snapshot = await get(userRef);
+                if (snapshot.exists() && snapshot.val().banned === 1) {
+                    loginError.textContent = 'Error: This account is banned.';
+                    await auth.signOut(); // Log out banned user
+                    return;
+                }
+                loginError.textContent = '';
+                loginContainer.style.display = 'none';
+                terminal.style.display = 'block';
+                setTimeout(() => {
+                    commandInput.focus();
+                }, 100); // Ensure focus after DOM update
+            } catch (error) {
+                loginError.textContent = `Error: ${error.message}`;
+            }
         };
 
         // Handle registration
-        window.handleRegister = function() {
+        window.handleRegister = async function() {
             const email = registerEmail.value.trim();
             const password = registerPassword.value.trim();
             if (!email || !password) {
                 registerError.textContent = 'Please enter both email and password.';
                 return;
             }
-            createUserWithEmailAndPassword(auth, email, password)
-                .then(() => {
-                    registerError.textContent = '';
-                    registerContainer.style.display = 'none';
-                    terminal.style.display = 'block';
-                    setTimeout(() => {
-                        commandInput.focus();
-                    }, 100); // Ensure focus after DOM update
-                })
-                .catch(error => {
-                    registerError.textContent = `Error: ${error.message}`;
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                // Create user in Realtime Database
+                await set(ref(db, `users/${user.uid}`), {
+                    hacked: [],
+                    banned: 0
                 });
+                registerError.textContent = '';
+                registerContainer.style.display = 'none';
+                terminal.style.display = 'block';
+                setTimeout(() => {
+                    commandInput.focus();
+                }, 100); // Ensure focus after DOM update
+            } catch (error) {
+                registerError.textContent = `Error: ${error.message}`;
+            }
         };
 
         // Terminal logic
@@ -706,7 +722,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             processDownload();
         }
 
-        function hackTarget(target) {
+        async function hackTarget(target) {
             if (!hackingState.filesDownloaded) {
                 showTextInstant(`Permission denied 400: Complete all preliminary steps before hacking ${target}. Follow the sequence: scanports -> hackports -> connectport -> hackdatabase -> connectdatabase -> scandatabase -> (hackadditionalprotection if needed) -> downloadfilesdatabase.\n`, () => {
                     endProcessing();
@@ -737,7 +753,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             let progressValue = 0;
             let isProgressActive = false;
 
-            function processHack() {
+            async function processHack() {
                 if (messageIndex < messages.length) {
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
@@ -770,6 +786,17 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                         processHack();
                     }
                 } else {
+                    // Update hacked targets in Realtime Database
+                    const user = auth.currentUser;
+                    if (user) {
+                        const userRef = ref(db, `users/${user.uid}`);
+                        const snapshot = await get(userRef);
+                        let hacked = snapshot.exists() ? snapshot.val().hacked || [] : [];
+                        if (!hacked.includes(target)) {
+                            hacked.push(target);
+                            await update(userRef, { hacked });
+                        }
+                    }
                     showTextLineByLine([`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`], 0, () => {
                         endProcessing();
                     }, 10, 20);
