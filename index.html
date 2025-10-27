@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacker Terminal</title>
+    <style>
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        .terminal {
+            width: 80%;
+            max-width: 800px;
+            padding: 20px;
+            border: 2px solid #0f0;
+            box-shadow: 0 0 20px #0f0;
+            background: rgba(0, 0, 0, 0.8);
+            position: relative;
+            z-index: 1;
+        }
+        .output {
+            white-space: pre-wrap;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 20px;
+            background: #0f0;
+            animation: blink 0.7s infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        input {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #0a0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #000;
+            border: 1px solid #0f0;
+            margin-top: 10px;
+        }
+        .progress {
+            height: 100%;
+            background: #0f0;
+            width: 0;
+            transition: width 0.05s linear;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    <div class="terminal">
+        <div class="output" id="output">Welcome to Hacker Terminal v4.0
+Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'download <file>', 'sysinfo', 'clear')<span class="cursor"></span></div>
+        <input type="text" id="command" placeholder="Enter command..." onkeydown="handleCommand(event)">
+        <div class="progress-bar" id="progressBar" style="display: none;">
+            <div class="progress" id="progress"></div>
+        </div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const commandInput = document.getElementById('command');
+        const progressBar = document.getElementById('progressBar');
+        const progress = document.getElementById('progress');
+        let isProcessing = false;
+
+        function showText(text, callback) {
+            output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + text;
+            output.innerHTML += '<span class="cursor"></span>';
+            output.scrollTop = output.scrollHeight; // Auto-scroll to bottom
+            if (callback) callback();
+        }
+
+        function showProgress(percentage, callback) {
+            progressBar.style.display = 'block';
+            progress.style.width = percentage + '%';
+            if (percentage >= 100 && callback) {
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progress.style.width = '0%';
+                    callback();
+                }, 200);
+            }
+        }
+
+        function handleCommand(event) {
+            if (event.key !== 'Enter' || isProcessing) return;
+            isProcessing = true;
+            const input = commandInput.value.trim().toLowerCase();
+            commandInput.value = '';
+            output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + `\n> ${input}\n`;
+
+            const [cmd, ...args] = input.split(' ');
+            const target = args.join(' ') || 'unknown';
+
+            if (cmd === 'checkbase') {
+                checkBase(target);
+            } else if (cmd === 'hack') {
+                hackTarget(target);
+            } else if (cmd === 'scan') {
+                scanTarget(target);
+            } else if (cmd === 'download') {
+                downloadFile(target);
+            } else if (cmd === 'sysinfo') {
+                showSysInfo();
+            } else if (cmd === 'clear') {
+                output.textContent = '';
+                isProcessing = false;
+                output.innerHTML += '<span class="cursor"></span>';
+            } else {
+                showText(`Unknown command: ${cmd}\n`, () => {
+                    isProcessing = false;
+                });
+            }
+        }
+
+        function checkBase(target) {
+            const fakeData = Array.from({ length: 100 }, (_, i) => ({
+                id: 1000 + i,
+                login: `user_${Math.random().toString(36).substring(2, 10)}`,
+                pass: `pass_${Math.random().toString(36).substring(2, 12)}`,
+                email: `user${i}@hack${Math.floor(Math.random() * 1000)}.net`,
+                ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+                lastLogin: `2025-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1} ${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60)}`,
+                role: ['user', 'admin', 'guest', 'moderator'][Math.floor(Math.random() * 4)],
+                status: ['active', 'suspended', 'banned'][Math.floor(Math.random() * 3)],
+                dataSize: `${Math.floor(Math.random() * 1000)}MB`
+            }));
+            let outputText = `Scanning database for ${target}...\nFound ${fakeData.length} entries:\n`;
+            fakeData.forEach(entry => {
+                outputText += `ID: ${entry.id}, Login: ${entry.login}, Password: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Last Login: ${entry.lastLogin}, Role: ${entry.role}, Status: ${entry.status}, Data: ${entry.dataSize}\n`;
+            });
+            showText(outputText, () => {
+                isProcessing = false;
+            });
+        }
+
+        function hackTarget(target) {
+            const fileCount = Math.floor(Math.random() * 3) + 3; // Random 3-5 files
+            const files = Array.from({ length: fileCount }, (_, i) => [
+                `system_config_${i}.bin`,
+                `user_data_${i}.db`,
+                `encrypted_keys_${i}.dat`,
+                `network_logs_${i}.txt`,
+                `backup_2025_${i}.zip`
+            ][Math.floor(Math.random() * 5)]);
+            const messages = [
+                `Initializing hack protocol for ${target}...\n`,
+                `Connecting to ${target}...\n`,
+                `Bypassing firewall...\n`,
+                `Scanning ports: 22, 80, 443, 8080, 3306...\n`,
+                `Vulnerabilities detected: SQL Injection, XSS, Weak Encryption, RCE\n`,
+                `Launching exploit...\n`,
+                `Access granted!\n`,
+                `Downloading files:\n`
+            ];
+            let messageIndex = 0;
+            let fileIndex = 0;
+            let progressValue = 0;
+            let isProgressActive = false;
+
+            function processHack() {
+                if (messageIndex < messages.length) {
+                    showText(messages[messageIndex], () => {
+                        messageIndex++;
+                        processHack();
+                    });
+                } else if (fileIndex < files.length) {
+                    if (!isProgressActive) {
+                        isProgressActive = true;
+                        showText(`Downloading ${files[fileIndex]}: `);
+                        progressValue = 0;
+                        const interval = setInterval(() => {
+                            progressValue += 5;
+                            showProgress(progressValue);
+                            if (progressValue >= 100) {
+                                clearInterval(interval);
+                                showText(`100%\n`, () => {
+                                    isProgressActive = false;
+                                    fileIndex++;
+                                    processHack();
+                                });
+                            }
+                        }, 50); // Faster progress bar (2 seconds total)
+                    }
+                } else {
+                    showText(`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`, () => {
+                        isProcessing = false;
+                    });
+                }
+
+                // Parallel text output
+                if (Math.random() < 0.3 && !isProgressActive) {
+                    const randomData = `Packet ${Math.random().toString(36).substring(2, 10)}: ${Math.floor(Math.random() * 1000)} bytes received\n`;
+                    output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + randomData;
+                    output.innerHTML += '<span class="cursor"></span>';
+                    output.scrollTop = output.scrollHeight;
+                }
+            }
+            processHack();
+        }
+
+        function scanTarget(target) {
+            const outputText = `Scanning ${target}...\n` +
+                `Ports open: 22 (SSH), 80 (HTTP), 443 (HTTPS), 8080 (Proxy), 3306 (MySQL)\n` +
+                `Vulnerabilities found: SQL Injection, XSS, Weak Passwords, Unpatched Software, RCE\n` +
+                `OS: UnknownOS v${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}\n` +
+                `Network: DarkWeb v${Math.floor(Math.random() * 7)}.0\n` +
+                `Devices detected: ${Math.floor(Math.random() * 50)}\n` +
+                `Scan complete.\n`;
+            showText(outputText, () => {
+                isProcessing = false;
+            });
+        }
+
+        function downloadFile(file) {
+            let progressValue = 0;
+            showText(`Initiating download of ${file}...\n`, () => {
+                const interval = setInterval(() => {
+                    progressValue += 10;
+                    showProgress(progressValue);
+                    if (progressValue >= 100) {
+                        clearInterval(interval);
+                        showText(`File ${file} downloaded successfully!\n`, () => {
+                            isProcessing = false;
+                        });
+                    }
+                    // Parallel random data
+                    if (Math.random() < 0.2) {
+                        const randomData = `Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 500)}KB\n`;
+                        output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + randomData;
+                        output.innerHTML += '<span class="cursor"></span>';
+                        output.scrollTop = output.scrollHeight;
+                    }
+                }, 50); // Faster progress bar
+            });
+        }
+
+        function showSysInfo() {
+            const outputText = `System Information:\n` +
+                `OS: HAX0R v13.37\n` +
+                `CPU: Quantum Core i9-9999X @ 5.0GHz\n` +
+                `Memory: 128GB DDR5\n` +
+                `Storage: 2TB NVMe SSD\n` +
+                `Network: DarkWeb v6.0, 1Gbps\n` +
+                `Uptime: ${Math.floor(Math.random() * 1000)} hours\n` +
+                `Processes: ${Math.floor(Math.random() * 200)}\n` +
+                `Status: Online\n`;
+            showText(outputText, () => {
+                isProcessing = false;
+            });
+        }
+
+        // Matrix effect
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(0);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f0';
+            ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                const x = i * fontSize;
+                const y = drops[i] * fontSize;
+                ctx.fillText(text, x, y);
+                if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 33);
+    </script>
+</body>
+</html>
