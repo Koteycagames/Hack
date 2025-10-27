@@ -86,7 +86,7 @@
             max-height: 400px;
             overflow-y: auto;
             margin-bottom: 10px;
-            text-align: left; /* Changed to left alignment */
+            text-align: left;
         }
         .cursor {
             display: inline-block;
@@ -190,6 +190,13 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         const progressBar = document.getElementById('progressBar');
         const progress = document.getElementById('progress');
 
+        // Subscription settings
+        let subscriptionSettings = {
+            default: { delay: 50, minAttempts: 3, maxAttempts: 6, hackSuccessChance: 0.6 },
+            pro: { delay: 20, minAttempts: 2, maxAttempts: 5, hackSuccessChance: 0.8 },
+            platinum: { delay: 10, minAttempts: 1, maxAttempts: 3, hackSuccessChance: 0.95 }
+        };
+
         // Toggle between login and register forms
         window.showRegister = function() {
             loginContainer.style.display = 'none';
@@ -223,7 +230,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 const snapshot = await get(userRef);
                 if (snapshot.exists() && snapshot.val().banned === 1) {
                     loginError.textContent = 'Error: This account is banned.';
-                    await auth.signOut(); // Log out banned user
+                    await auth.signOut();
                     return;
                 }
                 loginError.textContent = '';
@@ -231,7 +238,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 terminal.style.display = 'block';
                 setTimeout(() => {
                     commandInput.focus();
-                }, 100); // Ensure focus after DOM update
+                }, 100);
             } catch (error) {
                 loginError.textContent = `Error: ${error.message}`;
             }
@@ -248,17 +255,18 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-                // Create user in Realtime Database
+                // Create user in Realtime Database with default subscription
                 await set(ref(db, `users/${user.uid}`), {
                     hacked: [],
-                    banned: 0
+                    banned: 0,
+                    subscription: "default"
                 });
                 registerError.textContent = '';
                 registerContainer.style.display = 'none';
                 terminal.style.display = 'block';
                 setTimeout(() => {
                     commandInput.focus();
-                }, 100); // Ensure focus after DOM update
+                }, 100);
             } catch (error) {
                 registerError.textContent = `Error: ${error.message}`;
             }
@@ -283,12 +291,25 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             filesDownloaded: false
         };
 
+        let currentSubscription = "default"; // Default until login
+
+        // Update subscription on login
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                const userRef = ref(db, `users/${user.uid}`);
+                const snapshot = await get(userRef);
+                if (snapshot.exists()) {
+                    currentSubscription = snapshot.val().subscription || "default";
+                }
+            }
+        });
+
         function resetState() {
             hackingState.portsScanned = false;
             hackingState.portsHacked = false;
             hackingState.portsConnected = false;
             hackingState.dbHackAttempts = 0;
-            hackingState.requiredDbAttempts = 0;
+            hackingState.requiredDbAttempts = subscriptionSettings[currentSubscription].minAttempts + Math.floor(Math.random() * (subscriptionSettings[currentSubscription].maxAttempts - subscriptionSettings[currentSubscription].minAttempts + 1));
             hackingState.dbHacked = false;
             hackingState.dbConnected = false;
             hackingState.dbScanned = false;
@@ -313,7 +334,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             if (callback) callback();
         }
 
-        function showTextLineByLine(lines, index = 0, callback, batchSize = 10, delay = 20) {
+        function showTextLineByLine(lines, index = 0, callback, batchSize = 10, delay = subscriptionSettings[currentSubscription].delay) {
             if (index < lines.length) {
                 const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
                 outputBuffer += batch.join('');
@@ -353,7 +374,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         // Command handler
         window.handleCommand = function(event) {
             if (event.key !== 'Enter' || isProcessing) return;
-            console.log('Command sent:', commandInput.value); // Debug
+            console.log('Command sent:', commandInput.value);
             isProcessing = true;
             const input = commandInput.value.trim().toLowerCase();
             commandInput.value = '';
@@ -405,7 +426,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         };
 
         function checkBase(target) {
-            const entryCount = Math.floor(Math.random() * 901) + 100; // 100-1000 entries
+            const entryCount = Math.floor(Math.random() * 901) + 100;
             const fakeData = Array.from({ length: entryCount }, (_, i) => ({
                 id: 1000 + i,
                 login: `user_${Math.random().toString(36).substring(2, 10)}`,
@@ -423,11 +444,11 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             });
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 10, 20);
+            }, 10);
         }
 
         function scanPorts(target) {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const lines = [
                 `Scanning ports for ${target}...\n`,
                 `Ports detected: 22 (SSH - protected by advanced firewall), 80 (HTTP - encrypted), 443 (HTTPS - multi-factor auth), 8080 (Proxy - intrusion detection), 3306 (MySQL - access control lists)\n`
@@ -439,7 +460,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.portsScanned = true;
                 endProcessing();
-            }, 10, 20);
+            }, 10);
         }
 
         function hackPorts(target) {
@@ -449,7 +470,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const messages = [
                 `Initializing port hack for ${target}...\n`,
                 `Bypassing firewall protections...\n`,
@@ -467,7 +488,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHackPorts();
-                    }, 10, 20);
+                    }, 10);
                 } else {
                     const interval = setInterval(() => {
                         progressValue += 10;
@@ -477,7 +498,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                             showTextLineByLine([`Ports hacked successfully!\n`], 0, () => {
                                 hackingState.portsHacked = true;
                                 endProcessing();
-                            }, 10, 20);
+                            }, 10);
                         }
                     }, 50);
                 }
@@ -492,7 +513,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const lines = [
                 `Connecting to hacked ports on ${target}...\n`,
                 `Establishing secure tunnel...\n`
@@ -504,7 +525,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.portsConnected = true;
                 endProcessing();
-            }, 10, 20);
+            }, 10);
         }
 
         function hackDataBase(target) {
@@ -515,10 +536,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 return;
             }
             if (hackingState.requiredDbAttempts === 0) {
-                hackingState.requiredDbAttempts = Math.floor(Math.random() * 4) + 2; // Random 2-5 attempts
+                hackingState.requiredDbAttempts = subscriptionSettings[currentSubscription].minAttempts + Math.floor(Math.random() * (subscriptionSettings[currentSubscription].maxAttempts - subscriptionSettings[currentSubscription].minAttempts + 1));
             }
             hackingState.dbHackAttempts++;
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const messages = [
                 `Attempting to hack database on ${target} (Attempt ${hackingState.dbHackAttempts})...\n`,
                 `Probing database defenses...\n`,
@@ -534,17 +555,17 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHackDb();
-                    }, 10, 20);
+                    }, 10);
                 } else {
-                    if (hackingState.dbHackAttempts < hackingState.requiredDbAttempts) {
+                    if (hackingState.dbHackAttempts < hackingState.requiredDbAttempts || Math.random() > subscriptionSettings[currentSubscription].hackSuccessChance) {
                         showTextLineByLine([`Hack failed. Defenses too strong. Try again.\n`], 0, () => {
                             endProcessing();
-                        }, 10, 20);
+                        }, 10);
                     } else {
                         showTextLineByLine([`Database hacked successfully after ${hackingState.dbHackAttempts} attempts!\n`], 0, () => {
                             hackingState.dbHacked = true;
                             endProcessing();
-                        }, 10, 20);
+                        }, 10);
                     }
                 }
             }
@@ -558,7 +579,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const lines = [
                 `Connecting to hacked database on ${target}...\n`,
                 `Authenticating with compromised credentials...\n`
@@ -570,7 +591,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.dbConnected = true;
                 endProcessing();
-            }, 10, 20);
+            }, 10);
         }
 
         function scanDataBase(target) {
@@ -580,16 +601,16 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const lines = [
                 `Scanning database for additional protections on ${target}...\n`,
                 `Analyzing security layers...\n`
             ];
             let rand = Math.random();
             if (rand < 0.3) {
-                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 10) + 1; // 1-10 protections
+                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 10) + 1;
             } else if (rand < 0.8) {
-                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 40) + 11; // 11-50 protections
+                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 40) + 11;
             } else {
                 hackingState.additionalProtectionsCount = 0;
             }
@@ -601,7 +622,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.dbScanned = true;
                 endProcessing();
-            }, 10, 20);
+            }, 10);
         }
 
         function hackAdditionalProtection(target) {
@@ -617,7 +638,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const messages = [
                 `Hacking additional protections on ${target}...\n`,
                 `Bypassing ${hackingState.additionalProtectionsCount} security layers...\n`,
@@ -634,7 +655,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHackProtections();
-                    }, 10, 20);
+                    }, 10);
                 } else {
                     const interval = setInterval(() => {
                         progressValue += 10;
@@ -644,7 +665,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                             showTextLineByLine([`All additional protections hacked successfully!\n`], 0, () => {
                                 hackingState.protectionsHacked = true;
                                 endProcessing();
-                            }, 10, 20);
+                            }, 10);
                         }
                     }, 50);
                 }
@@ -665,9 +686,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const fileCount = Math.floor(Math.random() * 101) + 200; // 200-300 files
+            const fileCount = Math.floor(Math.random() * 101) + 200;
             const files = Array.from({ length: fileCount }, (_, i) => `db_file_${i}_${Math.random().toString(36).substring(2, 8)}.dat`);
-            const logCount = Math.floor(Math.random() * 101) + 200; // 200-300 log lines
+            const logCount = Math.floor(Math.random() * 101) + 200;
             const logLines = Array.from({ length: logCount }, () => {
                 return `Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 5000)}KB - Source: ${['db_table_' + Math.random().toString(36).substring(2, 8), 'archive_' + Math.random().toString(36).substring(2, 8)][Math.floor(Math.random() * 2)]}\n`;
             });
@@ -685,13 +706,13 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processDownload();
-                    }, 10, 10);
+                    }, 10);
                 } else if (logIndex < logLines.length || fileIndex < files.length) {
                     if (logIndex < logLines.length && Math.random() < 0.5) {
                         showTextLineByLine([logLines[logIndex]], 0, () => {
                             logIndex++;
                             processDownload();
-                        }, 10, 10);
+                        }, 10);
                     } else if (fileIndex < files.length && !isProgressActive) {
                         isProgressActive = true;
                         showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
@@ -705,10 +726,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                                         isProgressActive = false;
                                         fileIndex++;
                                         processDownload();
-                                    }, 10, 10);
+                                    }, 10);
                                 }
                             }, 20);
-                        }, 10, 10);
+                        }, 10);
                     } else {
                         processDownload();
                     }
@@ -716,7 +737,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([`All ${fileCount} database files downloaded!\n`], 0, () => {
                         hackingState.filesDownloaded = true;
                         endProcessing();
-                    }, 10, 10);
+                    }, 10);
                 }
             }
             processDownload();
@@ -729,7 +750,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const fileCount = Math.floor(Math.random() * 901) + 100; // 100-1000 files
+            const fileCount = Math.floor(Math.random() * 901) + 100;
             const files = Array.from({ length: fileCount }, (_, i) => [
                 `system_config_${i}.bin`,
                 `user_data_${i}.db`,
@@ -758,13 +779,13 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHack();
-                    }, 10, 20);
+                    }, 10);
                 } else if (logIndex < logLines.length || fileIndex < files.length) {
                     if (logIndex < logLines.length && Math.random() < 0.5) {
                         showTextLineByLine([logLines[logIndex]], 0, () => {
                             logIndex++;
                             processHack();
-                        }, 10, 20);
+                        }, 10);
                     } else if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
                         isProgressActive = true;
                         showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
@@ -778,15 +799,14 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                                         isProgressActive = false;
                                         fileIndex++;
                                         processHack();
-                                    }, 10, 20);
+                                    }, 10);
                                 }
                             }, 20);
-                        }, 10, 20);
+                        }, 10);
                     } else {
                         processHack();
                     }
                 } else {
-                    // Update hacked targets in Realtime Database
                     const user = auth.currentUser;
                     if (user) {
                         const userRef = ref(db, `users/${user.uid}`);
@@ -799,14 +819,14 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     }
                     showTextLineByLine([`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`], 0, () => {
                         endProcessing();
-                    }, 10, 20);
+                    }, 10);
                 }
             }
             processHack();
         }
 
         function scanTarget(target) {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const lines = [
                 `Scanning ${target}...\n`,
                 `Ports open: 22 (SSH), 80 (HTTP), 443 (HTTPS), 8080 (Proxy), 3306 (MySQL)\n`,
@@ -821,11 +841,11 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             lines.push(`Scan complete.\n`);
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 10, 20);
+            }, 10);
         }
 
         function downloadFile(file) {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             let progressValue = 0;
             const lines = [`Initiating download of ${file}...\n`];
             for (let i = 0; i < lineCount - 2; i++) {
@@ -838,7 +858,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([lines[lineIndex]], 0, () => {
                         lineIndex++;
                         processDownload();
-                    }, 10, 20);
+                    }, 10);
                 } else {
                     const interval = setInterval(() => {
                         progressValue += 20;
@@ -856,7 +876,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         }
 
         function showSysInfo() {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const lines = [
                 `System Information:\n`,
                 `OS: HAX0R v13.37\n`,
@@ -873,7 +893,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             lines.push(`Status: Online\n`);
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 10, 20);
+            }, 10);
         }
 
         // Matrix effect
