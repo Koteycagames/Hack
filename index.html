@@ -2,19 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hacker Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #000;
             color: #0f0;
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier Prime', 'Courier New', monospace;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
             overflow: hidden;
+            touch-action: manipulation;
         }
         canvas {
             position: fixed;
@@ -23,77 +25,90 @@
             z-index: -1;
         }
         .auth-container, .terminal {
-            width: 80%;
-            max-width: 400px;
+            width: 90%;
+            max-width: 420px;
             padding: 20px;
             border: 2px solid #0f0;
             box-shadow: 0 0 20px #0f0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             position: relative;
             z-index: 1;
+            border-radius: 8px;
         }
         .terminal {
-            max-width: 800px;
-            display: none; /* Hidden until login */
+            max-width: 900px;
+            display: none;
+            height: 80vh;
+            flex-direction: column;
         }
         .auth-container h2 {
-            margin: 0 0 20px;
+            margin: 0 0 16px;
             font-size: 18px;
+            text-align: center;
         }
         .auth-container input {
             background: #000;
             color: #0f0;
             border: 1px solid #0f0;
-            padding: 10px;
-            font-family: 'Courier New', monospace;
+            padding: 12px;
+            font-family: inherit;
             width: 100%;
-            box-sizing: border-box;
-            margin: 5px 0;
+            margin: 8px 0;
+            border-radius: 4px;
+            font-size: 16px;
         }
         .auth-container input:focus {
             outline: none;
-            border-color: #0a0;
+            border-color: #0f0;
+            box-shadow: 0 0 10px #0f0;
         }
         .auth-container button {
             background: #0f0;
             color: #000;
             border: none;
-            padding: 10px;
-            font-family: 'Courier New', monospace;
+            padding: 12px;
+            font-family: inherit;
             width: 100%;
             cursor: pointer;
-            margin: 10px 0;
+            margin: 12px 0;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
         }
-        .auth-container button:hover {
+        .auth-container button:active {
             background: #0a0;
+            transform: scale(0.98);
         }
         .auth-container a {
             color: #0f0;
             text-decoration: none;
             font-size: 14px;
+            display: block;
+            text-align: center;
+            margin-top: 10px;
         }
-        .auth-container a:hover {
-            color: #0a0;
-        }
+        .auth-container a:active { color: #0a0; }
         .auth-container .error {
             color: #f00;
             font-size: 14px;
             margin: 10px 0;
+            text-align: center;
         }
         .output {
+            flex: 1;
             white-space: pre-wrap;
-            font-size: 14px;
-            max-height: 400px;
+            font-size: 15px;
             overflow-y: auto;
-            margin-bottom: 10px;
-            text-align: left; /* Changed to left alignment */
+            padding: 10px 0;
+            line-height: 1.4;
         }
         .cursor {
             display: inline-block;
             width: 10px;
-            height: 20px;
+            height: 18px;
             background: #0f0;
             animation: blink 0.7s infinite;
+            margin-left: 2px;
         }
         @keyframes blink {
             50% { opacity: 0; }
@@ -102,64 +117,78 @@
             background: #000;
             color: #0f0;
             border: 1px solid #0f0;
-            padding: 10px;
-            font-family: 'Courier New', monospace;
+            padding: 12px;
+            font-family: inherit;
             width: 100%;
-            box-sizing: border-box;
+            font-size: 16px;
+            border-radius: 4px;
         }
         .terminal input:focus {
             outline: none;
-            border-color: #0a0;
+            border-color: #0f0;
+            box-shadow: 0 0 10px #0f0;
         }
         .progress-bar {
             width: 100%;
-            height: 20px;
-            background: #000;
+            height: 8px;
+            background: #111;
             border: 1px solid #0f0;
             margin-top: 10px;
+            border-radius: 4px;
+            overflow: hidden;
+            display: none;
         }
         .progress {
             height: 100%;
             background: #0f0;
             width: 0;
-            transition: width 0.05s linear;
+            transition: width 0.1s ease;
         }
+        .command-prefix { color: #0a0; }
     </style>
 </head>
 <body>
+
     <canvas id="matrix"></canvas>
+
+    <!-- АВТОРИЗАЦИЯ -->
     <div class="auth-container" id="loginContainer">
-        <h2>Login to Hacker Terminal</h2>
-        <input type="email" id="loginEmail" placeholder="Email..." required>
-        <input type="password" id="loginPassword" placeholder="Password..." required>
-        <button onclick="handleLogin()">Login</button>
+        <h2>LOGIN TO HACKER TERMINAL</h2>
+        <input type="email" id="loginEmail" placeholder="email@domain.com" required>
+        <input type="password" id="loginPassword" placeholder="password" required>
+        <button onclick="handleLogin()">LOGIN</button>
         <div class="error" id="loginError"></div>
         <a href="#" onclick="showRegister()">No account? Register</a>
     </div>
+
     <div class="auth-container" id="registerContainer" style="display: none;">
-        <h2>Register for Hacker Terminal</h2>
-        <input type="email" id="registerEmail" placeholder="Email..." required>
-        <input type="password" id="registerPassword" placeholder="Password..." required>
-        <button onclick="handleRegister()">Register</button>
+        <h2>REGISTER FOR HACKER TERMINAL</h2>
+        <input type="email" id="registerEmail" placeholder="email@domain.com" required>
+        <input type="password" id="registerPassword" placeholder="password (6+ chars)" required>
+        <button onclick="handleRegister()">REGISTER</button>
         <div class="error" id="registerError"></div>
-        <a href="#" onclick="showLogin()">Have an account? Sign in</a>
+        <a href="#" onclick="showLogin()">Have account? Sign in</a>
     </div>
+
+    <!-- ТЕРМИНАЛ -->
     <div class="terminal" id="terminal">
-        <div class="output" id="output">Welcome to Hacker Terminal v7.0
-Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'download <file>', 'sysinfo', 'clear', 'scanports <target>', 'hackports <target>', 'connectport <target>', 'hackdatabase <target>', 'connectdatabase <target>', 'scandatabase <target>', 'hackadditionalprotection <target>', 'downloadfilesdatabase <target>')<span class="cursor"></span></div>
-        <input type="text" id="command" placeholder="Enter command..." onkeydown="handleCommand(event)">
-        <div class="progress-bar" id="progressBar" style="display: none;">
+        <div class="output" id="output">
+<span class="command-prefix">root@hacker:~#</span> Welcome to Hacker Terminal v7.0
+<span class="command-prefix">root@hacker:~#</span> Type 'help' for commands
+<span class="cursor"></span></div>
+        <input type="text" id="command" placeholder="Enter command..." autocomplete="off" autofocus>
+        <div class="progress-bar" id="progressBar">
             <div class="progress" id="progress"></div>
         </div>
     </div>
 
-    <script type="module">
-        // Firebase imports
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-        import { getDatabase, ref, set, get, update } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 
-        // Firebase configuration
+    <script>
+        // === КОНФИГ FIREBASE ===
         const firebaseConfig = {
             apiKey: "AIzaSyAW8_MflF9FOtd2CrReCyHhPyaxvTIe-0Q",
             authDomain: "hack-5281a.firebaseapp.com",
@@ -170,309 +199,239 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             appId: "1:450443370663:web:7d1b37ebab9fc71d2a7b82"
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+        // Инициализация
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
 
-        // DOM elements
+        // DOM
         const loginContainer = document.getElementById('loginContainer');
         const registerContainer = document.getElementById('registerContainer');
         const terminal = document.getElementById('terminal');
-        const loginEmail = document.getElementById('loginEmail');
-        const loginPassword = document.getElementById('loginPassword');
-        const loginError = document.getElementById('loginError');
-        const registerEmail = document.getElementById('registerEmail');
-        const registerPassword = document.getElementById('registerPassword');
-        const registerError = document.getElementById('registerError');
-        const commandInput = document.getElementById('command');
         const output = document.getElementById('output');
+        const commandInput = document.getElementById('command');
         const progressBar = document.getElementById('progressBar');
         const progress = document.getElementById('progress');
 
-        // Toggle between login and register forms
-        window.showRegister = function() {
+        let isProcessing = false;
+        let currentUser = null;
+
+        // === МАТРИЦА ===
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}";
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f0';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 35);
+
+        // === ПЕРЕКЛЮЧЕНИЕ ФОРМ ===
+        window.showRegister = () => {
             loginContainer.style.display = 'none';
             registerContainer.style.display = 'block';
-            loginError.textContent = '';
-            loginEmail.value = '';
-            loginPassword.value = '';
+            document.getElementById('loginError').textContent = '';
         };
 
-        window.showLogin = function() {
+        window.showLogin = () => {
             registerContainer.style.display = 'none';
             loginContainer.style.display = 'block';
-            registerError.textContent = '';
-            registerEmail.value = '';
-            registerPassword.value = '';
+            document.getElementById('registerError').textContent = '';
         };
 
-        // Handle login
-        window.handleLogin = async function() {
-            const email = loginEmail.value.trim();
-            const password = loginPassword.value.trim();
-            if (!email || !password) {
-                loginError.textContent = 'Please enter both email and password.';
-                return;
-            }
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                // Check if user is banned
-                const userRef = ref(db, `users/${user.uid}`);
-                const snapshot = await get(userRef);
-                if (snapshot.exists() && snapshot.val().banned === 1) {
-                    loginError.textContent = 'Error: This account is banned.';
-                    await auth.signOut(); // Log out banned user
-                    return;
-                }
-                loginError.textContent = '';
-                loginContainer.style.display = 'none';
-                terminal.style.display = 'block';
-                setTimeout(() => {
-                    commandInput.focus();
-                }, 100); // Ensure focus after DOM update
-            } catch (error) {
-                loginError.textContent = `Error: ${error.message}`;
-            }
-        };
+        // === АВТОРИЗАЦИЯ ===
+        window.handleLogin = () => {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const error = document.getElementById('loginError');
 
-        // Handle registration
-        window.handleRegister = async function() {
-            const email = registerEmail.value.trim();
-            const password = registerPassword.value.trim();
             if (!email || !password) {
-                registerError.textContent = 'Please enter both email and password.';
+                error.textContent = 'Enter email and password';
                 return;
             }
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                // Create user in Realtime Database
-                await set(ref(db, `users/${user.uid}`), {
-                    hacked: [],
-                    banned: 0
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(cred => {
+                    currentUser = cred.user;
+                    checkBanAndEnter();
+                })
+                .catch(err => {
+                    error.textContent = err.message;
                 });
-                registerError.textContent = '';
-                registerContainer.style.display = 'none';
-                terminal.style.display = 'block';
-                setTimeout(() => {
-                    commandInput.focus();
-                }, 100); // Ensure focus after DOM update
-            } catch (error) {
-                registerError.textContent = `Error: ${error.message}`;
-            }
         };
 
-        // Terminal logic
-        let isProcessing = false;
-        let outputBuffer = '';
+        window.handleRegister = () => {
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value.trim();
+            const error = document.getElementById('registerError');
 
-        let hackingState = {
-            target: '',
-            portsScanned: false,
-            portsHacked: false,
-            portsConnected: false,
-            dbHackAttempts: 0,
-            requiredDbAttempts: 0,
-            dbHacked: false,
-            dbConnected: false,
-            dbScanned: false,
-            additionalProtectionsCount: 0,
-            protectionsHacked: false,
-            filesDownloaded: false
+            if (!email || !password || password.length < 6) {
+                error.textContent = 'Password must be 6+ chars';
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(cred => {
+                    return db.ref('users/' + cred.user.uid).set({
+                        hacked: [],
+                        banned: 0
+                    });
+                })
+                .then(() => {
+                    currentUser = auth.currentUser;
+                    enterTerminal();
+                })
+                .catch(err => {
+                    error.textContent = err.message;
+                });
         };
 
-        function resetState() {
-            hackingState.portsScanned = false;
-            hackingState.portsHacked = false;
-            hackingState.portsConnected = false;
-            hackingState.dbHackAttempts = 0;
-            hackingState.requiredDbAttempts = 0;
-            hackingState.dbHacked = false;
-            hackingState.dbConnected = false;
-            hackingState.dbScanned = false;
-            hackingState.additionalProtectionsCount = 0;
-            hackingState.protectionsHacked = false;
-            hackingState.filesDownloaded = false;
-        }
-
-        function checkAndSetTarget(target) {
-            if (hackingState.target && hackingState.target !== target) {
-                showTextInstant(`Changing target to ${target}. Resetting hack progress.\n`, () => {});
-                resetState();
-            }
-            hackingState.target = target;
-        }
-
-        function flushBuffer(callback) {
-            output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + outputBuffer;
-            output.innerHTML += '<span class="cursor"></span>';
-            output.scrollTop = output.scrollHeight;
-            outputBuffer = '';
-            if (callback) callback();
-        }
-
-        function showTextLineByLine(lines, index = 0, callback, batchSize = 10, delay = 20) {
-            if (index < lines.length) {
-                const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
-                outputBuffer += batch.join('');
-                if (index % batchSize === 0 || index === lines.length - 1) {
-                    flushBuffer();
+        function checkBanAndEnter() {
+            db.ref('users/' + currentUser.uid).once('value').then(snapshot => {
+                if (snapshot.val()?.banned === 1) {
+                    auth.signOut();
+                    document.getElementById('loginError').textContent = 'Account banned';
+                } else {
+                    enterTerminal();
                 }
-                setTimeout(() => showTextLineByLine(lines, index + batchSize, callback, batchSize, delay), delay);
-            } else {
-                flushBuffer(callback);
-            }
+            });
         }
 
-        function showProgress(percentage, callback) {
+        function enterTerminal() {
+            loginContainer.style.display = 'none';
+            registerContainer.style.display = 'none';
+            terminal.style.display = 'flex';
+            setTimeout(() => commandInput.focus(), 100);
+            addLine('Authentication successful. Welcome, hacker.');
+            addLine("Type 'help' for available commands.");
+        }
+
+        // === ТЕРМИНАЛ ===
+        function addLine(text) {
+            const span = document.createElement('div');
+            span.innerHTML = `<span class="command-prefix">root@hacker:~#</span> ${text}`;
+            output.appendChild(span);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function showProgress(pct) {
             progressBar.style.display = 'block';
-            progress.style.width = percentage + '%';
-            if (percentage >= 100 && callback) {
+            progress.style.width = pct + '%';
+            if (pct >= 100) {
                 setTimeout(() => {
                     progressBar.style.display = 'none';
                     progress.style.width = '0%';
-                    callback();
-                }, 100);
+                }, 300);
             }
         }
 
-        function showTextInstant(text, callback) {
-            output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + text;
-            output.innerHTML += '<span class="cursor"></span>';
-            output.scrollTop = output.scrollHeight;
-            if (callback) callback();
-        }
-
-        function endProcessing() {
-            isProcessing = false;
-            commandInput.focus();
-        }
-
-        // Command handler
-        window.handleCommand = function(event) {
-            if (event.key !== 'Enter' || isProcessing) return;
-            console.log('Command sent:', commandInput.value); // Debug
+        window.handleCommand = (e) => {
+            if (e.key !== 'Enter' || isProcessing) return;
             isProcessing = true;
-            const input = commandInput.value.trim().toLowerCase();
+            const cmd = commandInput.value.trim();
             commandInput.value = '';
-            output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + `\n> ${input}\n`;
-            output.scrollTop = output.scrollHeight;
+            addLine(`<span style="color:#0ff">${cmd}</span>`);
 
-            const [cmd, ...args] = input.split(' ');
-            const target = args.join(' ') || 'unknown';
+            const [action, target] = cmd.toLowerCase().split(' ');
+            const t = target || '';
 
-            if (['scanports', 'hackports', 'connectport', 'hackdatabase', 'connectdatabase', 'scandatabase', 'hackadditionalprotection', 'downloadfilesdatabase', 'hack'].includes(cmd)) {
-                checkAndSetTarget(target);
-            }
-
-            if (cmd === 'checkbase') {
-                checkBase(target);
-            } else if (cmd === 'hack') {
-                hackTarget(target);
-            } else if (cmd === 'scan') {
-                scanTarget(target);
-            } else if (cmd === 'download') {
-                downloadFile(target);
-            } else if (cmd === 'sysinfo') {
-                showSysInfo();
-            } else if (cmd === 'clear') {
-                output.textContent = '';
-                output.innerHTML += '<span class="cursor"></span>';
-                endProcessing();
-            } else if (cmd === 'scanports') {
-                scanPorts(target);
-            } else if (cmd === 'hackports') {
-                hackPorts(target);
-            } else if (cmd === 'connectport') {
-                connectPort(target);
-            } else if (cmd === 'hackdatabase') {
-                hackDataBase(target);
-            } else if (cmd === 'connectdatabase') {
-                connectDataBase(target);
-            } else if (cmd === 'scandatabase') {
-                scanDataBase(target);
-            } else if (cmd === 'hackadditionalprotection') {
-                hackAdditionalProtection(target);
-            } else if (cmd === 'downloadfilesdatabase') {
-                downloadFilesDataBase(target);
-            } else {
-                showTextInstant(`Unknown command: ${cmd}\n`, () => {
-                    endProcessing();
-                });
-            }
+            setTimeout(() => {
+                if (cmd === 'help') {
+                    addLine("checkbase <site> - scan user database\nhack <site> - full exploit\nscan <site> - network scan\nsysinfo - system info\nclear - clear screen");
+                } else if (cmd === 'clear') {
+                    output.innerHTML = '<span class="cursor"></span>';
+                } else if (cmd === 'sysinfo') {
+                    addLine("OS: HTML OS v9\nCPU: Quantum Core\nRAM: 64GB\nGPU: RTX 9999\nStatus: HACKING MODE");
+                } else if (action === 'checkbase' && t) {
+                    fakeDatabaseScan(t);
+                } else if (action === 'hack' && t) {
+                    fullHack(t);
+                } else if (action === 'scan' && t) {
+                    networkScan(t);
+                } else {
+                    addLine(`Command not found: ${cmd}`);
+                }
+                isProcessing = false;
+                commandInput.focus();
+            }, 300);
         };
 
-        function checkBase(target) {
-            const entryCount = Math.floor(Math.random() * 901) + 100; // 100-1000 entries
-            const fakeData = Array.from({ length: entryCount }, (_, i) => ({
-                id: 1000 + i,
-                login: `user_${Math.random().toString(36).substring(2, 10)}`,
-                pass: `pass_${Math.random().toString(36).substring(2, 12)}`,
-                email: `user${i}@hack${Math.floor(Math.random() * 1000)}.net`,
-                ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-                lastLogin: `2025-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1} ${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60)}`,
-                role: ['user', 'admin', 'guest', 'moderator'][Math.floor(Math.random() * 4)],
-                status: ['active', 'suspended', 'banned'][Math.floor(Math.random() * 3)],
-                dataSize: `${Math.floor(Math.random() * 1000)}MB`
-            }));
-            const lines = [`Scanning database for ${target}...\n`, `Found ${fakeData.length} entries:\n`];
-            fakeData.forEach(entry => {
-                lines.push(`ID: ${entry.id}, Login: ${entry.login}, Password: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Last Login: ${entry.lastLogin}, Role: ${entry.role}, Status: ${entry.status}, Data: ${entry.dataSize}\n`);
-            });
-            showTextLineByLine(lines, 0, () => {
-                endProcessing();
-            }, 10, 20);
+        function fakeDatabaseScan(site) {
+            addLine(`Scanning ${site} database...`);
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                showProgress(progress);
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    const users = Math.floor(Math.random() * 800) + 200;
+                    addLine(`Found ${users} user records:`);
+                    for (let i = 0; i < 3; i++) {
+                        addLine(`user${i}: admin${i}@${site}.com | pass: P@ssw0rd${i}`);
+                    }
+                    addLine("Use 'hack " + site + "' to exploit.");
+                }
+            }, 200);
         }
 
-        function scanPorts(target) {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
-            const lines = [
-                `Scanning ports for ${target}...\n`,
-                `Ports detected: 22 (SSH - protected by advanced firewall), 80 (HTTP - encrypted), 443 (HTTPS - multi-factor auth), 8080 (Proxy - intrusion detection), 3306 (MySQL - access control lists)\n`
+        function fullHack(site) {
+            addLine(`Initializing exploit on ${site}...`);
+            const steps = [
+                "Bypassing WAF...",
+                "Injecting payload...",
+                "Escalating privileges...",
+                "Dumping database...",
+                "Access granted!"
             ];
-            for (let i = 0; i < lineCount - 2; i++) {
-                lines.push(`Port ${Math.floor(Math.random() * 65535)}: ${['open', 'closed', 'filtered'][Math.floor(Math.random() * 3)]} - ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} [${['encrypted', 'firewalled', 'rate-limited'][Math.floor(Math.random() * 3)]}]\n`);
-            }
-            lines.push(`All ports are protected. Need to hack them to proceed.\n`);
-            showTextLineByLine(lines, 0, () => {
-                hackingState.portsScanned = true;
-                endProcessing();
-            }, 10, 20);
+            let i = 0;
+            const int = setInterval(() => {
+                addLine(steps[i]);
+                i++;
+                showProgress((i / steps.length) * 100);
+                if (i >= steps.length) {
+                    clearInterval(int);
+                    addLine(`SUCCESS: ${site} HACKED!`);
+                    addLine("Files downloaded to /root/loot/");
+                }
+            }, 800);
         }
 
-        function hackPorts(target) {
-            if (!hackingState.portsScanned) {
-                showTextInstant(`Permission denied 400: Scan ports first.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
-            const messages = [
-                `Initializing port hack for ${target}...\n`,
-                `Bypassing firewall protections...\n`,
-                `Cracking encryption on ports...\n`,
-                `Exploiting vulnerabilities...\n`
-            ];
-            for (let i = 0; i < lineCount - 4; i++) {
-                messages.push(`Port ${Math.floor(Math.random() * 65535)}: Exploiting ${['CVE-' + Math.floor(Math.random() * 10000), 'Weak Auth', 'Buffer Overflow'][Math.floor(Math.random() * 3)]}...\n`);
-            }
-            let messageIndex = 0;
-            let progressValue = 0;
+        function networkScan(site) {
+            addLine(`Scanning ${site}...`);
+            setTimeout(() => {
+                addLine("IP: 192.168.1.1");
+                addLine("Open ports: 22, 80, 443");
+                addLine("OS: Linux 5.4");
+                addLine("Vulnerabilities: 12 critical");
+            }, 1000);
+        }
 
-            function processHackPorts() {
-                if (messageIndex < messages.length) {
-                    showTextLineByLine([messages[messageIndex]], 0, () => {
-                        messageIndex++;
-                        processHackPorts();
-                    }, 10, 20);
-                } else {
-                    const interval = setInterval(() => {
-                        progressValue += 10;
-                        showProgress(progressValue);
-                        if (progressValue >= 100) {
-                            clearInterval(interval);
-                            showTextLineByLine([`Ports hacked successfully!\n`], 0, () => {
-                    
+        // Автофокус
+        window.onload = () => {
+            setTimeout(() => {
+                const input = document.querySelector('input:focus');
+                if (input) input.focus();
+            }, 100);
+        };
+    </script>
+</body>
+</html>
