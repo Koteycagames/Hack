@@ -34,7 +34,7 @@
         }
         .terminal {
             max-width: 800px;
-            display: none; /* Hidden until login */
+            display: none;
         }
         .auth-container h2 {
             margin: 0 0 20px;
@@ -197,25 +197,25 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             platinum: { delay: 10, minAttempts: 1, maxAttempts: 3, hackSuccessChance: 0.95 }
         };
 
-        // Toggle between login and register forms
-        window.showRegister = function() {
+        let currentSubscription = "default";
+
+        // Toggle forms
+        window.showRegister = () => {
             loginContainer.style.display = 'none';
             registerContainer.style.display = 'block';
             loginError.textContent = '';
-            loginEmail.value = '';
-            loginPassword.value = '';
+            loginEmail.value = loginPassword.value = '';
         };
 
-        window.showLogin = function() {
+        window.showLogin = () => {
             registerContainer.style.display = 'none';
             loginContainer.style.display = 'block';
             registerError.textContent = '';
-            registerEmail.value = '';
-            registerPassword.value = '';
+            registerEmail.value = registerPassword.value = '';
         };
 
         // Handle login
-        window.handleLogin = async function() {
+        window.handleLogin = async () => {
             const email = loginEmail.value.trim();
             const password = loginPassword.value.trim();
             if (!email || !password) {
@@ -225,7 +225,6 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-                // Check if user is banned
                 const userRef = ref(db, `users/${user.uid}`);
                 const snapshot = await get(userRef);
                 if (snapshot.exists() && snapshot.val().banned === 1) {
@@ -233,19 +232,18 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     await auth.signOut();
                     return;
                 }
+                currentSubscription = snapshot.val().subscription || "default";
                 loginError.textContent = '';
                 loginContainer.style.display = 'none';
                 terminal.style.display = 'block';
-                setTimeout(() => {
-                    commandInput.focus();
-                }, 100);
+                setTimeout(() => commandInput.focus(), 100);
             } catch (error) {
                 loginError.textContent = `Error: ${error.message}`;
             }
         };
 
         // Handle registration
-        window.handleRegister = async function() {
+        window.handleRegister = async () => {
             const email = registerEmail.value.trim();
             const password = registerPassword.value.trim();
             if (!email || !password) {
@@ -255,18 +253,16 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-                // Create user in Realtime Database with default subscription
                 await set(ref(db, `users/${user.uid}`), {
                     hacked: [],
                     banned: 0,
                     subscription: "default"
                 });
+                currentSubscription = "default";
                 registerError.textContent = '';
                 registerContainer.style.display = 'none';
                 terminal.style.display = 'block';
-                setTimeout(() => {
-                    commandInput.focus();
-                }, 100);
+                setTimeout(() => commandInput.focus(), 100);
             } catch (error) {
                 registerError.textContent = `Error: ${error.message}`;
             }
@@ -290,19 +286,6 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             protectionsHacked: false,
             filesDownloaded: false
         };
-
-        let currentSubscription = "default"; // Default until login
-
-        // Update subscription on login
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                const userRef = ref(db, `users/${user.uid}`);
-                const snapshot = await get(userRef);
-                if (snapshot.exists()) {
-                    currentSubscription = snapshot.val().subscription || "default";
-                }
-            }
-        });
 
         function resetState() {
             hackingState.portsScanned = false;
@@ -335,16 +318,16 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         }
 
         function showTextLineByLine(lines, index = 0, callback, batchSize = 10, delay = subscriptionSettings[currentSubscription].delay) {
-            if (index < lines.length) {
-                const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
-                outputBuffer += batch.join('');
-                if (index % batchSize === 0 || index === lines.length - 1) {
-                    flushBuffer();
-                }
-                setTimeout(() => showTextLineByLine(lines, index + batchSize, callback, batchSize, delay), delay);
-            } else {
+            if (index >= lines.length) {
                 flushBuffer(callback);
+                return;
             }
+            const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
+            outputBuffer += batch.join('');
+            if (index % batchSize === 0 || index + batchSize >= lines.length) {
+                flushBuffer();
+            }
+            setTimeout(() => showTextLineByLine(lines, index + batchSize, callback, batchSize, delay), delay);
         }
 
         function showProgress(percentage, callback) {
@@ -374,7 +357,6 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         // Command handler
         window.handleCommand = function(event) {
             if (event.key !== 'Enter' || isProcessing) return;
-            console.log('Command sent:', commandInput.value);
             isProcessing = true;
             const input = commandInput.value.trim().toLowerCase();
             commandInput.value = '';
@@ -388,42 +370,30 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 checkAndSetTarget(target);
             }
 
-            if (cmd === 'checkbase') {
-                checkBase(target);
-            } else if (cmd === 'hack') {
-                hackTarget(target);
-            } else if (cmd === 'scan') {
-                scanTarget(target);
-            } else if (cmd === 'download') {
-                downloadFile(target);
-            } else if (cmd === 'sysinfo') {
-                showSysInfo();
-            } else if (cmd === 'clear') {
-                output.textContent = '';
-                output.innerHTML += '<span class="cursor"></span>';
-                endProcessing();
-            } else if (cmd === 'scanports') {
-                scanPorts(target);
-            } else if (cmd === 'hackports') {
-                hackPorts(target);
-            } else if (cmd === 'connectport') {
-                connectPort(target);
-            } else if (cmd === 'hackdatabase') {
-                hackDataBase(target);
-            } else if (cmd === 'connectdatabase') {
-                connectDataBase(target);
-            } else if (cmd === 'scandatabase') {
-                scanDataBase(target);
-            } else if (cmd === 'hackadditionalprotection') {
-                hackAdditionalProtection(target);
-            } else if (cmd === 'downloadfilesdatabase') {
-                downloadFilesDataBase(target);
-            } else {
-                showTextInstant(`Unknown command: ${cmd}\n`, () => {
-                    endProcessing();
-                });
+            try {
+                if (cmd === 'checkbase') checkBase(target);
+                else if (cmd === 'hack') hackTarget(target);
+                else if (cmd === 'scan') scanTarget(target);
+                else if (cmd === 'download') downloadFile(target);
+                else if (cmd === 'sysinfo') showSysInfo();
+                else if (cmd === 'clear') { output.textContent = ''; output.innerHTML += '<span class="cursor"></span>'; endProcessing(); }
+                else if (cmd === 'scanports') scanPorts(target);
+                else if (cmd === 'hackports') hackPorts(target);
+                else if (cmd === 'connectport') connectPort(target);
+                else if (cmd === 'hackdatabase') hackDataBase(target);
+                else if (cmd === 'connectdatabase') connectDataBase(target);
+                else if (cmd === 'scandatabase') scanDataBase(target);
+                else if (cmd === 'hackadditionalprotection') hackAdditionalProtection(target);
+                else if (cmd === 'downloadfilesdatabase') downloadFilesDataBase(target);
+                else {
+                    showTextInstant(`Unknown command: ${cmd}\n`, endProcessing);
+                }
+            } catch (err) {
+                showTextInstant(`Error: ${err.message}\n`, endProcessing);
             }
         };
+
+        // === КОМАНДЫ (все вызовы showTextLineByLine с 5 аргументами) ===
 
         function checkBase(target) {
             const entryCount = Math.floor(Math.random() * 901) + 100;
@@ -442,9 +412,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             fakeData.forEach(entry => {
                 lines.push(`ID: ${entry.id}, Login: ${entry.login}, Password: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Last Login: ${entry.lastLogin}, Role: ${entry.role}, Status: ${entry.status}, Data: ${entry.dataSize}\n`);
             });
-            showTextLineByLine(lines, 0, () => {
-                endProcessing();
-            }, 10);
+            showTextLineByLine(lines, 0, endProcessing, 10, subscriptionSettings[currentSubscription].delay);
         }
 
         function scanPorts(target) {
@@ -454,20 +422,15 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `Ports detected: 22 (SSH - protected by advanced firewall), 80 (HTTP - encrypted), 443 (HTTPS - multi-factor auth), 8080 (Proxy - intrusion detection), 3306 (MySQL - access control lists)\n`
             ];
             for (let i = 0; i < lineCount - 2; i++) {
-                lines.push(`Port ${Math.floor(Math.random() * 65535)}: ${['open', 'closed', 'filtered'][Math.floor(Math.random() * 3)]} - ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} [${['encrypted', 'firewalled', 'rate-limited'][Math.floor(Math.random() * 3)]}]\n`);
+                lines.push(`Port ${Math.floor(Math samym() * 65535)}: ${['open', 'closed', 'filtered'][Math.floor(Math.random() * 3)]} - ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} [${['encrypted', 'firewalled', 'rate-limited'][Math.floor(Math.random() * 3)]}]\n`);
             }
             lines.push(`All ports are protected. Need to hack them to proceed.\n`);
-            showTextLineByLine(lines, 0, () => {
-                hackingState.portsScanned = true;
-                endProcessing();
-            }, 10);
+            showTextLineByLine(lines, 0, () => { hackingState.portsScanned = true; endProcessing(); }, 10, subscriptionSettings[currentSubscription].delay);
         }
 
         function hackPorts(target) {
             if (!hackingState.portsScanned) {
-                showTextInstant(`Permission denied 400: Scan ports first.\n`, () => {
-                    endProcessing();
-                });
+                showTextInstant(`Permission denied 400: Scan ports first.\n`, endProcessing);
                 return;
             }
             const lineCount = Math.floor(Math.random() * 901) + 100;
@@ -488,439 +451,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHackPorts();
-                    }, 10);
+                    }, 10, subscriptionSettings[currentSubscription].delay);
                 } else {
                     const interval = setInterval(() => {
                         progressValue += 10;
                         showProgress(progressValue);
-                        if (progressValue >= 100) {
-                            clearInterval(interval);
-                            showTextLineByLine([`Ports hacked successfully!\n`], 0, () => {
-                                hackingState.portsHacked = true;
-                                endProcessing();
-                            }, 10);
-                        }
-                    }, 50);
-                }
-            }
-            processHackPorts();
-        }
-
-        function connectPort(target) {
-            if (!hackingState.portsHacked) {
-                showTextInstant(`Permission denied 400: Hack ports first.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            const lineCount = Math.floor(Math.random() * 901) + 100;
-            const lines = [
-                `Connecting to hacked ports on ${target}...\n`,
-                `Establishing secure tunnel...\n`
-            ];
-            for (let i = 0; i < lineCount - 3; i++) {
-                lines.push(`Establishing connection to port ${Math.floor(Math.random() * 65535)}: ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} - ${Math.floor(Math.random() * 1000)}ms latency\n`);
-            }
-            lines.push(`Connection established!\n`);
-            showTextLineByLine(lines, 0, () => {
-                hackingState.portsConnected = true;
-                endProcessing();
-            }, 10);
-        }
-
-        function hackDataBase(target) {
-            if (!hackingState.portsConnected) {
-                showTextInstant(`Permission denied 400: Connect to ports first.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            if (hackingState.requiredDbAttempts === 0) {
-                hackingState.requiredDbAttempts = subscriptionSettings[currentSubscription].minAttempts + Math.floor(Math.random() * (subscriptionSettings[currentSubscription].maxAttempts - subscriptionSettings[currentSubscription].minAttempts + 1));
-            }
-            hackingState.dbHackAttempts++;
-            const lineCount = Math.floor(Math.random() * 901) + 100;
-            const messages = [
-                `Attempting to hack database on ${target} (Attempt ${hackingState.dbHackAttempts})...\n`,
-                `Probing database defenses...\n`,
-                `Launching brute-force and exploit combo...\n`
-            ];
-            for (let i = 0; i < lineCount - 3; i++) {
-                messages.push(`Attempting exploit ${['SQL Injection', 'Privilege Escalation', 'Credential Stuffing'][Math.floor(Math.random() * 3)]} on ${['table_' + Math.random().toString(36).substring(2, 8), 'schema_' + Math.random().toString(36).substring(2, 8)][Math.floor(Math.random() * 2)]}...\n`);
-            }
-            let messageIndex = 0;
-
-            function processHackDb() {
-                if (messageIndex < messages.length) {
-                    showTextLineByLine([messages[messageIndex]], 0, () => {
-                        messageIndex++;
-                        processHackDb();
-                    }, 10);
-                } else {
-                    if (hackingState.dbHackAttempts < hackingState.requiredDbAttempts || Math.random() > subscriptionSettings[currentSubscription].hackSuccessChance) {
-                        showTextLineByLine([`Hack failed. Defenses too strong. Try again.\n`], 0, () => {
-                            endProcessing();
-                        }, 10);
-                    } else {
-                        showTextLineByLine([`Database hacked successfully after ${hackingState.dbHackAttempts} attempts!\n`], 0, () => {
-                            hackingState.dbHacked = true;
-                            endProcessing();
-                        }, 10);
-                    }
-                }
-            }
-            processHackDb();
-        }
-
-        function connectDataBase(target) {
-            if (!hackingState.dbHacked) {
-                showTextInstant(`Permission denied 400: Hack database first.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            const lineCount = Math.floor(Math.random() * 901) + 100;
-            const lines = [
-                `Connecting to hacked database on ${target}...\n`,
-                `Authenticating with compromised credentials...\n`
-            ];
-            for (let i = 0; i < lineCount - 3; i++) {
-                lines.push(`Authenticating session ${Math.random().toString(36).substring(2, 10)}: ${['Success', 'Verifying'][Math.floor(Math.random() * 2)]}\n`);
-            }
-            lines.push(`Connection to database established!\n`);
-            showTextLineByLine(lines, 0, () => {
-                hackingState.dbConnected = true;
-                endProcessing();
-            }, 10);
-        }
-
-        function scanDataBase(target) {
-            if (!hackingState.dbConnected) {
-                showTextInstant(`Permission denied 400: Connect to database first.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            const lineCount = Math.floor(Math.random() * 901) + 100;
-            const lines = [
-                `Scanning database for additional protections on ${target}...\n`,
-                `Analyzing security layers...\n`
-            ];
-            let rand = Math.random();
-            if (rand < 0.3) {
-                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 10) + 1;
-            } else if (rand < 0.8) {
-                hackingState.additionalProtectionsCount = Math.floor(Math.random() * 40) + 11;
-            } else {
-                hackingState.additionalProtectionsCount = 0;
-            }
-            for (let i = 0; i < lineCount - 3; i++) {
-                lines.push(`Scanning layer ${i + 1}: ${['Encryption', 'Access Control', 'Intrusion Detection', 'Data Masking'][Math.floor(Math.random() * 4)]} - ${['Active', 'Inactive'][Math.floor(Math.random() * 2)]}\n`);
-            }
-            lines.push(hackingState.additionalProtectionsCount > 0 ? `Found ${hackingState.additionalProtectionsCount} additional protections. Need to hack them.\n` : `No additional protections found.\n`);
-            lines.push(`Database scan complete.\n`);
-            showTextLineByLine(lines, 0, () => {
-                hackingState.dbScanned = true;
-                endProcessing();
-            }, 10);
-        }
-
-        function hackAdditionalProtection(target) {
-            if (!hackingState.dbScanned) {
-                showTextInstant(`Permission denied 400: Scan database first.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            if (hackingState.additionalProtectionsCount === 0) {
-                showTextInstant(`No additional protections to hack.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            const lineCount = Math.floor(Math.random() * 901) + 100;
-            const messages = [
-                `Hacking additional protections on ${target}...\n`,
-                `Bypassing ${hackingState.additionalProtectionsCount} security layers...\n`,
-                `Exploiting weaknesses...\n`
-            ];
-            for (let i = 0; i < lineCount - 3; i++) {
-                messages.push(`Bypassing protection ${i + 1}: ${['WAF', 'IDS', 'DLP', 'SIEM'][Math.floor(Math.random() * 4)]} - ${Math.floor(Math.random() * 100)}% complete\n`);
-            }
-            let messageIndex = 0;
-            let progressValue = 0;
-
-            function processHackProtections() {
-                if (messageIndex < messages.length) {
-                    showTextLineByLine([messages[messageIndex]], 0, () => {
-                        messageIndex++;
-                        processHackProtections();
-                    }, 10);
-                } else {
-                    const interval = setInterval(() => {
-                        progressValue += 10;
-                        showProgress(progressValue);
-                        if (progressValue >= 100) {
-                            clearInterval(interval);
-                            showTextLineByLine([`All additional protections hacked successfully!\n`], 0, () => {
-                                hackingState.protectionsHacked = true;
-                                endProcessing();
-                            }, 10);
-                        }
-                    }, 50);
-                }
-            }
-            processHackProtections();
-        }
-
-        function downloadFilesDataBase(target) {
-            if (!hackingState.dbScanned) {
-                showTextInstant(`Permission denied 400: Scan database first.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            if (hackingState.additionalProtectionsCount > 0 && !hackingState.protectionsHacked) {
-                showTextInstant(`Permission denied 400: Hack additional protections first.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            const fileCount = Math.floor(Math.random() * 101) + 200;
-            const files = Array.from({ length: fileCount }, (_, i) => `db_file_${i}_${Math.random().toString(36).substring(2, 8)}.dat`);
-            const logCount = Math.floor(Math.random() * 101) + 200;
-            const logLines = Array.from({ length: logCount }, () => {
-                return `Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 5000)}KB - Source: ${['db_table_' + Math.random().toString(36).substring(2, 8), 'archive_' + Math.random().toString(36).substring(2, 8)][Math.floor(Math.random() * 2)]}\n`;
-            });
-            const messages = [
-                `Downloading ${fileCount} files from database on ${target}...\n`
-            ];
-            let messageIndex = 0;
-            let logIndex = 0;
-            let fileIndex = 0;
-            let progressValue = 0;
-            let isProgressActive = false;
-
-            function processDownload() {
-                if (messageIndex < messages.length) {
-                    showTextLineByLine([messages[messageIndex]], 0, () => {
-                        messageIndex++;
-                        processDownload();
-                    }, 10);
-                } else if (logIndex < logLines.length || fileIndex < files.length) {
-                    if (logIndex < logLines.length && Math.random() < 0.5) {
-                        showTextLineByLine([logLines[logIndex]], 0, () => {
-                            logIndex++;
-                            processDownload();
-                        }, 10);
-                    } else if (fileIndex < files.length && !isProgressActive) {
-                        isProgressActive = true;
-                        showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
-                            progressValue = 0;
-                            const interval = setInterval(() => {
-                                progressValue += 20;
-                                showProgress(progressValue);
-                                if (progressValue >= 100) {
-                                    clearInterval(interval);
-                                    showTextLineByLine([`100%\n`], 0, () => {
-                                        isProgressActive = false;
-                                        fileIndex++;
-                                        processDownload();
-                                    }, 10);
-                                }
-                            }, 20);
-                        }, 10);
-                    } else {
-                        processDownload();
-                    }
-                } else {
-                    showTextLineByLine([`All ${fileCount} database files downloaded!\n`], 0, () => {
-                        hackingState.filesDownloaded = true;
-                        endProcessing();
-                    }, 10);
-                }
-            }
-            processDownload();
-        }
-
-        async function hackTarget(target) {
-            if (!hackingState.filesDownloaded) {
-                showTextInstant(`Permission denied 400: Complete all preliminary steps before hacking ${target}. Follow the sequence: scanports -> hackports -> connectport -> hackdatabase -> connectdatabase -> scandatabase -> (hackadditionalprotection if needed) -> downloadfilesdatabase.\n`, () => {
-                    endProcessing();
-                });
-                return;
-            }
-            const fileCount = Math.floor(Math.random() * 901) + 100;
-            const files = Array.from({ length: fileCount }, (_, i) => [
-                `system_config_${i}.bin`,
-                `user_data_${i}.db`,
-                `encrypted_keys_${i}.dat`,
-                `network_logs_${i}.txt`,
-                `backup_2025_${i}.zip`
-            ][Math.floor(Math.random() * 5)]);
-            const logLines = Array.from({ length: 1000 }, () => {
-                const types = ['Packet', 'Frame', 'DataChunk', 'Stream', 'Payload'];
-                const type = types[Math.floor(Math.random() * types.length)];
-                return `${type} ${Math.random().toString(36).substring(2, 10)}: ${Math.floor(Math.random() * 1000)} bytes, Source: ${['192.168.1.' + Math.floor(Math.random() * 255), '10.0.0.' + Math.floor(Math.random() * 255), 'darkweb.node.' + Math.floor(Math.random() * 100)][Math.floor(Math.random() * 3)]}\n`;
-            });
-            const messages = [
-                `Initializing final hack protocol for ${target}...\n`,
-                `Access granted!\n`,
-                `Downloading files:\n`
-            ];
-            let messageIndex = 0;
-            let logIndex = 0;
-            let fileIndex = 0;
-            let progressValue = 0;
-            let isProgressActive = false;
-
-            async function processHack() {
-                if (messageIndex < messages.length) {
-                    showTextLineByLine([messages[messageIndex]], 0, () => {
-                        messageIndex++;
-                        processHack();
-                    }, 10);
-                } else if (logIndex < logLines.length || fileIndex < files.length) {
-                    if (logIndex < logLines.length && Math.random() < 0.5) {
-                        showTextLineByLine([logLines[logIndex]], 0, () => {
-                            logIndex++;
-                            processHack();
-                        }, 10);
-                    } else if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
-                        isProgressActive = true;
-                        showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
-                            progressValue = 0;
-                            const interval = setInterval(() => {
-                                progressValue += 20;
-                                showProgress(progressValue);
-                                if (progressValue >= 100) {
-                                    clearInterval(interval);
-                                    showTextLineByLine([`100%\n`], 0, () => {
-                                        isProgressActive = false;
-                                        fileIndex++;
-                                        processHack();
-                                    }, 10);
-                                }
-                            }, 20);
-                        }, 10);
-                    } else {
-                        processHack();
-                    }
-                } else {
-                    const user = auth.currentUser;
-                    if (user) {
-                        const userRef = ref(db, `users/${user.uid}`);
-                        const snapshot = await get(userRef);
-                        let hacked = snapshot.exists() ? snapshot.val().hacked || [] : [];
-                        if (!hacked.includes(target)) {
-                            hacked.push(target);
-                            await update(userRef, { hacked });
-                        }
-                    }
-                    showTextLineByLine([`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`], 0, () => {
-                        endProcessing();
-                    }, 10);
-                }
-            }
-            processHack();
-        }
-
-        function scanTarget(target) {
-            const lineCount = Math.floor(Math.random() * 901) + 100;
-            const lines = [
-                `Scanning ${target}...\n`,
-                `Ports open: 22 (SSH), 80 (HTTP), 443 (HTTPS), 8080 (Proxy), 3306 (MySQL)\n`,
-                `Vulnerabilities found: SQL Injection, XSS, Weak Passwords, Unpatched Software, RCE\n`,
-                `OS: UnknownOS v${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}\n`,
-                `Network: DarkWeb v${Math.floor(Math.random() * 7)}.0\n`,
-                `Devices detected: ${Math.floor(Math.random() * 50)}\n`
-            ];
-            for (let i = 0; i < lineCount - 6; i++) {
-                lines.push(`Scanning node ${Math.random().toString(36).substring(2, 8)}: ${['Active', 'Idle', 'Offline'][Math.floor(Math.random() * 3)]}\n`);
-            }
-            lines.push(`Scan complete.\n`);
-            showTextLineByLine(lines, 0, () => {
-                endProcessing();
-            }, 10);
-        }
-
-        function downloadFile(file) {
-            const lineCount = Math.floor(Math.random() * 901) + 100;
-            let progressValue = 0;
-            const lines = [`Initiating download of ${file}...\n`];
-            for (let i = 0; i < lineCount - 2; i++) {
-                lines.push(`Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 500)}KB\n`);
-            }
-            let lineIndex = 0;
-
-            function processDownload() {
-                if (lineIndex < lines.length) {
-                    showTextLineByLine([lines[lineIndex]], 0, () => {
-                        lineIndex++;
-                        processDownload();
-                    }, 10);
-                } else {
-                    const interval = setInterval(() => {
-                        progressValue += 20;
-                        showProgress(progressValue);
-                        if (progressValue >= 100) {
-                            clearInterval(interval);
-                            showTextInstant(`File ${file} downloaded successfully!\n`, () => {
-                                endProcessing();
-                            });
-                        }
-                    }, 20);
-                }
-            }
-            processDownload();
-        }
-
-        function showSysInfo() {
-            const lineCount = Math.floor(Math.random() * 901) + 100;
-            const lines = [
-                `System Information:\n`,
-                `OS: HAX0R v13.37\n`,
-                `CPU: Quantum Core i9-9999X @ 5.0GHz\n`,
-                `Memory: 128GB DDR5\n`,
-                `Storage: 2TB NVMe SSD\n`,
-                `Network: DarkWeb v6.0, 1Gbps\n`,
-                `Uptime: ${Math.floor(Math.random() * 1000)} hours\n`,
-                `Processes: ${Math.floor(Math.random() * 200)}\n`
-            ];
-            for (let i = 0; i < lineCount - 8; i++) {
-                lines.push(`Process ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 1000)}KB RAM usage\n`);
-            }
-            lines.push(`Status: Online\n`);
-            showTextLineByLine(lines, 0, () => {
-                endProcessing();
-            }, 10);
-        }
-
-        // Matrix effect
-        const canvas = document.getElementById('matrix');
-        const ctx = canvas.getContext('2d');
-        canvas.height = window.innerHeight;
-        canvas.width = window.innerWidth;
-        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const fontSize = 14;
-        const columns = canvas.width / fontSize;
-        const drops = Array(Math.floor(columns)).fill(0);
-
-        function drawMatrix() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#0f0';
-            ctx.font = fontSize + 'px monospace';
-            for (let i = 0; i < drops.length; i++) {
-                const text = chars.charAt(Math.floor(Math.random() * chars.length));
-                const x = i * fontSize;
-                const y = drops[i] * fontSize;
-                ctx.fillText(text, x, y);
-                if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                drops[i]++;
-            }
-        }
-        setInterval(drawMatrix, 33);
-    </script>
-</body>
-</html>
+                   
