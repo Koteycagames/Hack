@@ -259,7 +259,6 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             dbConnected: false,
             dbScanned: false,
             additionalProtectionsCount: 0,
-            hackedProtections: 0,
             protectionsHacked: false,
             filesDownloaded: false
         };
@@ -273,7 +272,6 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             hackingState.dbConnected = false;
             hackingState.dbScanned = false;
             hackingState.additionalProtectionsCount = 0;
-            hackingState.hackedProtections = 0;
             hackingState.protectionsHacked = false;
             hackingState.filesDownloaded = false;
         }
@@ -588,7 +586,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 return;
             }
             if (!hackingState.requiredDbAttempts) {
-                hackingState.requiredDbAttempts = Math.floor(Math.random() * 5) + 1; // Changed: 1-5 attempts needed
+                hackingState.requiredDbAttempts = Math.floor(Math.random() * 5) + 1; // 1-5 attempts needed
             }
             hackingState.dbHackAttempts++;
             const lines = [
@@ -661,26 +659,26 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            if (hackingState.hackedProtections >= hackingState.additionalProtectionsCount) {
+            if (hackingState.protectionsHacked) {
                 showTextInstant(`All additional protections already hacked.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
-            hackingState.hackedProtections++;
-            const lineCount = Math.floor(Math.random() * 201) + 50; // Increased: 50-250 lines
             const lines = [
-                `Hacking additional protection layer ${hackingState.hackedProtections}/${hackingState.additionalProtectionsCount} on ${target}...\n`,
-                `Bypassing layer security...\n`
+                `Hacking all additional protection layers on ${target}...\n`
             ];
-            for (let i = 0; i < lineCount - 3; i++) {
-                lines.push(`Hack log: ${Math.random().toString(36).substring(2, 10)}\n`);
+            for (let layer = 1; layer <= hackingState.additionalProtectionsCount; layer++) {
+                const layerLineCount = Math.floor(Math.random() * 201) + 50; // Increased: 50-250 lines per layer
+                lines.push(`Hacking layer ${layer}/${hackingState.additionalProtectionsCount}...\n`);
+                lines.push(`Bypassing layer security...\n`);
+                for (let i = 0; i < layerLineCount - 3; i++) {
+                    lines.push(`Hack log: ${Math.random().toString(36).substring(2, 10)}\n`);
+                }
+                lines.push(`Layer ${layer} breached!\n`);
             }
-            lines.push(`Layer ${hackingState.hackedProtections} breached!\n`);
-            if (hackingState.hackedProtections >= hackingState.additionalProtectionsCount) {
-                lines.push(`All additional protections hacked!\n`);
-                hackingState.protectionsHacked = true;
-            }
+            lines.push(`All additional protections hacked!\n`);
+            hackingState.protectionsHacked = true;
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
             }, 5, 50);
