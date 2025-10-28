@@ -198,8 +198,8 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         let userSubscribe = 'default';
         const subscribeConfig = {
             'default': { lineDelay: 300, batchSize: 1, minDbAttempts: 3, maxDbAttempts: 10 },
-            'pro': { lineDelay: 100, batchSize: 1, minDbAttempts: 1, maxDbAttempts: 5 },
-            'platinum': { lineDelay: 50, batchSize: 1, minDbAttempts: 1, maxDbAttempts: 3 }
+            'pro': { lineDelay: 100, batchSize: 5, minDbAttempts: 1, maxDbAttempts: 5 },
+            'platinum': { lineDelay: 50, batchSize: 10, minDbAttempts: 1, maxDbAttempts: 3 }
         };
         window.handleLogin = async function() {
             const email = loginEmail.value.trim();
@@ -302,12 +302,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             if (index < lines.length) {
                 const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
                 outputBuffer += batch.join('');
-                if (index % batchSize === 0 || index === lines.length - 1) {
-                    flushBuffer();
-                }
+                flushBuffer();
                 setTimeout(() => showTextLineByLine(lines, index + batchSize, callback, batchSize, delay), delay);
             } else {
-                flushBuffer(callback);
+                if (callback) callback();
             }
         }
         function showProgress(percentage, callback) {
@@ -402,7 +400,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             }, config.batchSize, config.lineDelay);
         }
         function hackTarget(target, config) {
-            const fileCount = Math.floor(Math.random() * 3) + 3;
+            const fileCount = 30;
             const files = Array.from({ length: fileCount }, (_, i) => [
                 `system_config_${i}.bin`,
                 `user_data_${i}.db`,
@@ -410,7 +408,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `network_logs_${i}.txt`,
                 `backup_2025_${i}.zip`
             ][Math.floor(Math.random() * 5)]);
-            const logLines = Array.from({ length: 300 }, () => {
+            const logLines = Array.from({ length: 500 }, () => {
                 const types = ['Packet', 'Frame', 'DataChunk', 'Stream', 'Payload'];
                 const type = types[Math.floor(Math.random() * types.length)];
                 return `${type} ${Math.random().toString(36).substring(2, 10)}: ${Math.floor(Math.random() * 1000)} bytes, Source: ${['192.168.1.' + Math.floor(Math.random() * 255), '10.0.0.' + Math.floor(Math.random() * 255), 'darkweb.node.' + Math.floor(Math.random() * 100)][Math.floor(Math.random() * 3)]}\n`;
@@ -529,7 +527,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             }, config.batchSize, config.lineDelay);
         }
         function scanPorts(target, config) {
-            const lineCount = Math.floor(Math.random() * 901) + 100;
+            const lineCount = 150;
             const lines = [
                 `Scanning ports for ${target}...\n`,
                 `Ports detected: 22 (SSH - protected by advanced firewall), 80 (HTTP - encrypted), 443 (HTTPS - multi-factor auth), 8080 (Proxy - intrusion detection), 3306 (MySQL - access control lists)\n`
@@ -550,7 +548,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100;
+            const lineCount = 350;
             const messages = [
                 `Initializing port hack for ${target}...\n`,
                 `Bypassing firewall protections...\n`,
@@ -573,7 +571,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 501) + 100; // Increased: 100-600 lines
+            const lineCount = 10;
             const lines = [
                 `Connecting to hacked ports on ${target}...\n`,
                 `Establishing secure tunnel...\n`,
@@ -608,6 +606,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 lines.push(`Database hacked successfully!\n`);
                 hackingState.dbHacked = true;
             }
+            const lineCount = 300 - lines.length;
+            for (let i = 0; i < lineCount; i++) {
+                lines.push(`Hack log: ${Math.random().toString(36).substring(2, 10)}\n`);
+            }
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
             }, config.batchSize, config.lineDelay);
@@ -619,7 +621,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 501) + 100; // Increased: 100-600 lines
+            const lineCount = 100;
             const lines = [
                 `Connecting to hacked database on ${target}...\n`,
                 `Authenticating session...\n`
@@ -641,7 +643,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 return;
             }
             hackingState.additionalProtectionsCount = Math.floor(Math.random() * 4) + 1; // 1-4 protections
-            const lineCount = Math.floor(Math.random() * 501) + 200; // Increased: 200-700 lines
+            const lineCount = 300;
             const lines = [
                 `Scanning database on ${target}...\n`,
                 `Found tables: users, logs, secrets, backups, configs\n`,
@@ -679,7 +681,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `Hacking all additional protection layers on ${target}...\n`
             ];
             for (let layer = 1; layer <= hackingState.additionalProtectionsCount; layer++) {
-                const layerLineCount = Math.floor(Math.random() * 201) + 50; // Increased: 50-250 lines per layer
+                const layerLineCount = 250;
                 lines.push(`Hacking layer ${layer}/${hackingState.additionalProtectionsCount}...\n`);
                 lines.push(`Bypassing layer security...\n`);
                 for (let i = 0; i < layerLineCount - 3; i++) {
@@ -706,7 +708,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const fileCount = Math.floor(Math.random() * 21) + 10; // Increased: 10-30 files
+            const fileCount = 300;
             const files = Array.from({ length: fileCount }, (_, i) => `db_file_${Math.random().toString(36).substring(2, 8)}.dat`);
             const messages = [
                 `Initiating download of database files from ${target}...\n`
