@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hacker Terminal</title>
+    <title>Хакерский Терминал</title>
     <style>
         body {
             background: #000;
@@ -31,10 +31,11 @@
             background: rgba(0, 0, 0, 0.8);
             position: relative;
             z-index: 1;
+            text-align: center;
         }
         .terminal {
             max-width: 800px;
-            display: none; /* Hidden until login */
+            display: none; /* Скрыт до входа */
         }
         .auth-container h2 {
             margin: 0 0 20px;
@@ -86,7 +87,6 @@
             max-height: 400px;
             overflow-y: auto;
             margin-bottom: 10px;
-            text-align: left;
         }
         .cursor {
             display: inline-block;
@@ -129,53 +129,50 @@
 <body>
     <canvas id="matrix"></canvas>
     <div class="auth-container" id="loginContainer">
-        <h2>Login to Hacker Terminal</h2>
-        <input type="email" id="loginEmail" placeholder="Email..." required>
-        <input type="password" id="loginPassword" placeholder="Password..." required>
-        <button onclick="handleLogin()">Login</button>
+        <h2>Вход в Хакерский Терминал</h2>
+        <input type="email" id="loginEmail" placeholder="Эл. почта..." required>
+        <input type="password" id="loginPassword" placeholder="Пароль..." required>
+        <button onclick="handleLogin()">Войти</button>
         <div class="error" id="loginError"></div>
-        <a href="#" onclick="showRegister()">No account? Register</a>
+        <a href="#" onclick="showRegister()">Нет аккаунта? Зарегистрироваться</a>
     </div>
     <div class="auth-container" id="registerContainer" style="display: none;">
-        <h2>Register for Hacker Terminal</h2>
-        <input type="email" id="registerEmail" placeholder="Email..." required>
-        <input type="password" id="registerPassword" placeholder="Password..." required>
-        <button onclick="handleRegister()">Register</button>
+        <h2>Регистрация в Хакерском Терминале</h2>
+        <input type="email" id="registerEmail" placeholder="Эл. почта..." required>
+        <input type="password" id="registerPassword" placeholder="Пароль..." required>
+        <button onclick="handleRegister()">Зарегистрироваться</button>
         <div class="error" id="registerError"></div>
-        <a href="#" onclick="showLogin()">Have an account? Sign in</a>
+        <a href="#" onclick="showLogin()">Есть аккаунт? Войти</a>
     </div>
     <div class="terminal" id="terminal">
-        <div class="output" id="output">Welcome to Hacker Terminal v7.0
-Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'download <file>', 'sysinfo', 'clear', 'scanports <target>', 'hackports <target>', 'connectport <target>', 'hackdatabase <target>', 'connectdatabase <target>', 'scandatabase <target>', 'hackadditionalprotection <target>', 'downloadfilesdatabase <target>')<span class="cursor"></span></div>
-        <input type="text" id="command" placeholder="Enter command..." onkeydown="handleCommand(event)">
+        <div class="output" id="output">Добро пожаловать в Хакерский Терминал v7.0
+Введите команду (например, 'checkbase <цель>', 'hack <цель>', 'scan <цель>', 'download <файл>', 'sysinfo', 'clear', 'scanports <цель>', 'hackports <цель>', 'connectport <цель>', 'hackdatabase <цель>', 'connectdatabase <цель>', 'scandatabase <цель>', 'hackadditionalprotection <цель>', 'downloadfilesdatabase <цель>')<span class="cursor"></span></div>
+        <input type="text" id="command" placeholder="Введите команду..." onkeydown="handleCommand(event)">
         <div class="progress-bar" id="progressBar" style="display: none;">
             <div class="progress" id="progress"></div>
         </div>
     </div>
 
     <script type="module">
-        // Firebase imports
+        // Импорт Firebase
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-        import { getDatabase, ref, set, get, update } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 
-        // Firebase configuration
+        // Конфигурация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAW8_MflF9FOtd2CrReCyHhPyaxvTIe-0Q",
             authDomain: "hack-5281a.firebaseapp.com",
-            databaseURL: "https://hack-5281a-default-rtdb.firebaseio.com",
             projectId: "hack-5281a",
             storageBucket: "hack-5281a.firebasestorage.app",
             messagingSenderId: "450443370663",
             appId: "1:450443370663:web:7d1b37ebab9fc71d2a7b82"
         };
 
-        // Initialize Firebase
+        // Инициализация Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getDatabase(app);
 
-        // DOM elements
+        // Элементы DOM
         const loginContainer = document.getElementById('loginContainer');
         const registerContainer = document.getElementById('registerContainer');
         const terminal = document.getElementById('terminal');
@@ -190,14 +187,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         const progressBar = document.getElementById('progressBar');
         const progress = document.getElementById('progress');
 
-        // Subscription settings
-        let subscriptionSettings = {
-            default: { delay: 50, minAttempts: 3, maxAttempts: 6, hackSuccessChance: 0.6 },
-            pro: { delay: 20, minAttempts: 2, maxAttempts: 5, hackSuccessChance: 0.8 },
-            platinum: { delay: 10, minAttempts: 1, maxAttempts: 3, hackSuccessChance: 0.95 }
-        };
-
-        // Toggle between login and register forms
+        // Переключение между формами входа и регистрации
         window.showRegister = function() {
             loginContainer.style.display = 'none';
             registerContainer.style.display = 'block';
@@ -214,65 +204,59 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             registerPassword.value = '';
         };
 
-        // Handle login
-        window.handleLogin = async function() {
+        // Обработка входа
+        window.handleLogin = function() {
             const email = loginEmail.value.trim();
             const password = loginPassword.value.trim();
             if (!email || !password) {
-                loginError.textContent = 'Please enter both email and password.';
+                loginError.textContent = 'Пожалуйста, введите email и пароль.';
                 return;
             }
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                // Check if user is banned
-                const userRef = ref(db, `users/${user.uid}`);
-                const snapshot = await get(userRef);
-                if (snapshot.exists() && snapshot.val().banned === 1) {
-                    loginError.textContent = 'Error: This account is banned.';
-                    await auth.signOut();
-                    return;
-                }
-                loginError.textContent = '';
-                loginContainer.style.display = 'none';
-                terminal.style.display = 'block';
-                setTimeout(() => {
-                    commandInput.focus();
-                }, 100);
-            } catch (error) {
-                loginError.textContent = `Error: ${error.message}`;
-            }
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    loginError.textContent = '';
+                })
+                .catch(error => {
+                    loginError.textContent = `Ошибка: ${error.message}`;
+                });
         };
 
-        // Handle registration
-        window.handleRegister = async function() {
+        // Обработка регистрации
+        window.handleRegister = function() {
             const email = registerEmail.value.trim();
             const password = registerPassword.value.trim();
             if (!email || !password) {
-                registerError.textContent = 'Please enter both email and password.';
+                registerError.textContent = 'Пожалуйста, введите email и пароль.';
                 return;
             }
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                // Create user in Realtime Database with default subscription
-                await set(ref(db, `users/${user.uid}`), {
-                    hacked: [],
-                    banned: 0,
-                    subscription: "default"
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    registerError.textContent = '';
+                })
+                .catch(error => {
+                    registerError.textContent = `Ошибка: ${error.message}`;
                 });
-                registerError.textContent = '';
+        };
+
+        // Слушатель состояния авторизации
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                console.log('Пользователь авторизован, отображаем терминал');
+                loginContainer.style.display = 'none';
                 registerContainer.style.display = 'none';
                 terminal.style.display = 'block';
                 setTimeout(() => {
                     commandInput.focus();
-                }, 100);
-            } catch (error) {
-                registerError.textContent = `Error: ${error.message}`;
+                }, 100); // Задержка для гарантии фокуса
+            } else {
+                console.log('Пользователь не авторизован, отображаем форму входа');
+                loginContainer.style.display = 'block';
+                registerContainer.style.display = 'none';
+                terminal.style.display = 'none';
             }
-        };
+        });
 
-        // Terminal logic
+        // Логика терминала
         let isProcessing = false;
         let outputBuffer = '';
 
@@ -291,25 +275,12 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             filesDownloaded: false
         };
 
-        let currentSubscription = "default"; // Default until login
-
-        // Update subscription on login
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                const userRef = ref(db, `users/${user.uid}`);
-                const snapshot = await get(userRef);
-                if (snapshot.exists()) {
-                    currentSubscription = snapshot.val().subscription || "default";
-                }
-            }
-        });
-
         function resetState() {
             hackingState.portsScanned = false;
             hackingState.portsHacked = false;
             hackingState.portsConnected = false;
             hackingState.dbHackAttempts = 0;
-            hackingState.requiredDbAttempts = subscriptionSettings[currentSubscription].minAttempts + Math.floor(Math.random() * (subscriptionSettings[currentSubscription].maxAttempts - subscriptionSettings[currentSubscription].minAttempts + 1));
+            hackingState.requiredDbAttempts = 0;
             hackingState.dbHacked = false;
             hackingState.dbConnected = false;
             hackingState.dbScanned = false;
@@ -320,7 +291,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
 
         function checkAndSetTarget(target) {
             if (hackingState.target && hackingState.target !== target) {
-                showTextInstant(`Changing target to ${target}. Resetting hack progress.\n`, () => {});
+                showTextInstant(`Смена цели на ${target}. Сброс прогресса взлома.\n`, () => {});
                 resetState();
             }
             hackingState.target = target;
@@ -334,7 +305,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             if (callback) callback();
         }
 
-        function showTextLineByLine(lines, index = 0, callback, batchSize = 10, delay = subscriptionSettings[currentSubscription].delay) {
+        function showTextLineByLine(lines, index = 0, callback, batchSize = 10, delay = 20) {
             if (index < lines.length) {
                 const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
                 outputBuffer += batch.join('');
@@ -371,10 +342,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             commandInput.focus();
         }
 
-        // Command handler
+        // Обработчик команд
         window.handleCommand = function(event) {
             if (event.key !== 'Enter' || isProcessing) return;
-            console.log('Command sent:', commandInput.value);
+            console.log('Команда отправлена:', commandInput.value); // Отладка
             isProcessing = true;
             const input = commandInput.value.trim().toLowerCase();
             commandInput.value = '';
@@ -382,7 +353,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             output.scrollTop = output.scrollHeight;
 
             const [cmd, ...args] = input.split(' ');
-            const target = args.join(' ') || 'unknown';
+            const target = args.join(' ') || 'неизвестно';
 
             if (['scanports', 'hackports', 'connectport', 'hackdatabase', 'connectdatabase', 'scandatabase', 'hackadditionalprotection', 'downloadfilesdatabase', 'hack'].includes(cmd)) {
                 checkAndSetTarget(target);
@@ -419,14 +390,14 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             } else if (cmd === 'downloadfilesdatabase') {
                 downloadFilesDataBase(target);
             } else {
-                showTextInstant(`Unknown command: ${cmd}\n`, () => {
+                showTextInstant(`Неизвестная команда: ${cmd}\n`, () => {
                     endProcessing();
                 });
             }
         };
 
         function checkBase(target) {
-            const entryCount = Math.floor(Math.random() * 901) + 100;
+            const entryCount = Math.floor(Math.random() * 901) + 100; // 100-1000 записей
             const fakeData = Array.from({ length: entryCount }, (_, i) => ({
                 id: 1000 + i,
                 login: `user_${Math.random().toString(36).substring(2, 10)}`,
@@ -438,44 +409,79 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 status: ['active', 'suspended', 'banned'][Math.floor(Math.random() * 3)],
                 dataSize: `${Math.floor(Math.random() * 1000)}MB`
             }));
-            const lines = [`Scanning database for ${target}...\n`, `Found ${fakeData.length} entries:\n`];
+            const lines = [`Сканирование базы данных для ${target}...\n`, `Найдено ${fakeData.length} записей:\n`];
             fakeData.forEach(entry => {
-                lines.push(`ID: ${entry.id}, Login: ${entry.login}, Password: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Last Login: ${entry.lastLogin}, Role: ${entry.role}, Status: ${entry.status}, Data: ${entry.dataSize}\n`);
+                lines.push(`ID: ${entry.id}, Логин: ${entry.login}, Пароль: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Последний вход: ${entry.lastLogin}, Роль: ${entry.role}, Статус: ${entry.status}, Данные: ${entry.dataSize}\n`);
             });
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 10);
+            }, 10, 20);
         }
 
         function scanPorts(target) {
-            const lineCount = Math.floor(Math.random() * 901) + 100;
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const lines = [
-                `Scanning ports for ${target}...\n`,
-                `Ports detected: 22 (SSH - protected by advanced firewall), 80 (HTTP - encrypted), 443 (HTTPS - multi-factor auth), 8080 (Proxy - intrusion detection), 3306 (MySQL - access control lists)\n`
+                `Сканирование портов для ${target}...\n`,
+                `Обнаружены порты: 22 (SSH - защищен брандмауэром), 80 (HTTP - зашифрован), 443 (HTTPS - многофакторная авторизация), 8080 (Proxy - обнаружение вторжений), 3306 (MySQL - списки контроля доступа)\n`
             ];
             for (let i = 0; i < lineCount - 2; i++) {
-                lines.push(`Port ${Math.floor(Math.random() * 65535)}: ${['open', 'closed', 'filtered'][Math.floor(Math.random() * 3)]} - ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} [${['encrypted', 'firewalled', 'rate-limited'][Math.floor(Math.random() * 3)]}]\n`);
+                lines.push(`Порт ${Math.floor(Math.random() * 65535)}: ${['открыт', 'закрыт', 'фильтруется'][Math.floor(Math.random() * 3)]} - ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} [${['зашифрован', 'защищен брандмауэром', 'ограничен скоростью'][Math.floor(Math.random() * 3)]}]\n`);
             }
-            lines.push(`All ports are protected. Need to hack them to proceed.\n`);
+            lines.push(`Все порты защищены. Нужно их взломать для продолжения.\n`);
             showTextLineByLine(lines, 0, () => {
                 hackingState.portsScanned = true;
                 endProcessing();
-            }, 10);
+            }, 10, 20);
         }
 
         function hackPorts(target) {
             if (!hackingState.portsScanned) {
-                showTextInstant(`Permission denied 400: Scan ports first.\n`, () => {
+                showTextInstant(`Доступ запрещен 400: Сначала просканируйте порты.\n`, () => {
                     endProcessing();
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100;
+            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 строк
             const messages = [
-                `Initializing port hack for ${target}...\n`,
-                `Bypassing firewall protections...\n`,
-                `Cracking encryption on ports...\n`,
-                `Exploiting vulnerabilities...\n`
+                `Инициализация взлома портов для ${target}...\n`,
+                `Обход защиты брандмауэра...\n`,
+                `Взлом шифрования портов...\n`,
+                `Использование уязвимостей...\n`
             ];
             for (let i = 0; i < lineCount - 4; i++) {
-                messages.push(
+                messages.push(`Порт ${Math.floor(Math.random() * 65535)}: Использование ${['CVE-' + Math.floor(Math.random() * 10000), 'Слабая авторизация', 'Переполнение буфера'][Math.floor(Math.random() * 3)]}...\n`);
+            }
+            let messageIndex = 0;
+            let progressValue = 0;
+
+            function processHackPorts() {
+                if (messageIndex < messages.length) {
+                    showTextLineByLine([messages[messageIndex]], 0, () => {
+                        messageIndex++;
+                        processHackPorts();
+                    }, 10, 20);
+                } else {
+                    const interval = setInterval(() => {
+                        progressValue += 10;
+                        showProgress(progressValue);
+                        if (progressValue >= 100) {
+                            clearInterval(interval);
+                            showTextLineByLine([`Порты успешно взломаны!\n`], 0, () => {
+                                hackingState.portsHacked = true;
+                                endProcessing();
+                            }, 10, 20);
+                        }
+                    }, 50);
+                }
+            }
+            processHackPorts();
+        }
+
+        function connectPort(target) {
+            if (!hackingState.portsHacked) {
+                showTextInstant(`Доступ запрещен 400: Сначала взломайте порты.\n`, () => {
+                    endProcessing();
+                });
+                return;
+            }
+   
