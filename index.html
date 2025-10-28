@@ -132,34 +132,32 @@
         <h2>Login to Hacker Terminal</h2>
         <input type="email" id="loginEmail" placeholder="Email..." required>
         <input type="password" id="loginPassword" placeholder="Password..." required>
-        <button onclick="handleLogin()">Login</button>
+        <button onclick="window.handleLogin()">Login</button>
         <div class="error" id="loginError"></div>
-        <a href="#" onclick="showRegister()">No account? Register</a>
+        <a href="#" onclick="window.showRegister()">No account? Register</a>
     </div>
     <div class="auth-container" id="registerContainer" style="display: none;">
         <h2>Register for Hacker Terminal</h2>
         <input type="email" id="registerEmail" placeholder="Email..." required>
         <input type="password" id="registerPassword" placeholder="Password..." required>
-        <button onclick="handleRegister()">Register</button>
+        <button onclick="window.handleRegister()">Register</button>
         <div class="error" id="registerError"></div>
-        <a href="#" onclick="showLogin()">Have an account? Sign in</a>
+        <a href="#" onclick="window.showLogin()">Have an account? Sign in</a>
     </div>
     <div class="terminal" id="terminal">
         <div class="output" id="output">Welcome to Hacker Terminal v7.0
 Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'download <file>', 'sysinfo', 'clear', 'scanports <target>', 'hackports <target>', 'connectport <target>', 'hackdatabase <target>', 'connectdatabase <target>', 'scandatabase <target>', 'hackadditionalprotection <target>', 'downloadfilesdatabase <target>')<span class="cursor"></span></div>
-        <input type="text" id="command" placeholder="Enter command..." onkeydown="handleCommand(event)">
+        <input type="text" id="command" placeholder="Enter command..." onkeydown="window.handleCommand(event)">
         <div class="progress-bar" id="progressBar" style="display: none;">
             <div class="progress" id="progress"></div>
         </div>
     </div>
 
     <script type="module">
-        // Firebase imports
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
         import { getDatabase, ref, set, get, update } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAW8_MflF9FOtd2CrReCyHhPyaxvTIe-0Q",
             authDomain: "hack-5281a.firebaseapp.com",
@@ -170,12 +168,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             appId: "1:450443370663:web:7d1b37ebab9fc71d2a7b82"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // DOM elements
         const loginContainer = document.getElementById('loginContainer');
         const registerContainer = document.getElementById('registerContainer');
         const terminal = document.getElementById('terminal');
@@ -190,7 +186,6 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         const progressBar = document.getElementById('progressBar');
         const progress = document.getElementById('progress');
 
-        // Toggle between login and register forms
         window.showRegister = function() {
             loginContainer.style.display = 'none';
             registerContainer.style.display = 'block';
@@ -207,7 +202,6 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             registerPassword.value = '';
         };
 
-        // Handle login
         window.handleLogin = async function() {
             const email = loginEmail.value.trim();
             const password = loginPassword.value.trim();
@@ -218,12 +212,11 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-                // Check if user is banned
                 const userRef = ref(db, `users/${user.uid}`);
                 const snapshot = await get(userRef);
                 if (snapshot.exists() && snapshot.val().banned === 1) {
                     loginError.textContent = 'Error: This account is banned.';
-                    await auth.signOut(); // Log out banned user
+                    await auth.signOut();
                     return;
                 }
                 loginError.textContent = '';
@@ -231,13 +224,12 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 terminal.style.display = 'block';
                 setTimeout(() => {
                     commandInput.focus();
-                }, 100); // Ensure focus after DOM update
+                }, 100);
             } catch (error) {
                 loginError.textContent = `Error: ${error.message}`;
             }
         };
 
-        // Handle registration
         window.handleRegister = async function() {
             const email = registerEmail.value.trim();
             const password = registerPassword.value.trim();
@@ -248,7 +240,6 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-                // Create user in Realtime Database
                 await set(ref(db, `users/${user.uid}`), {
                     hacked: [],
                     banned: 0
@@ -258,13 +249,12 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 terminal.style.display = 'block';
                 setTimeout(() => {
                     commandInput.focus();
-                }, 100); // Ensure focus after DOM update
+                }, 100);
             } catch (error) {
                 registerError.textContent = `Error: ${error.message}`;
             }
         };
 
-        // Terminal logic
         let isProcessing = false;
         let outputBuffer = '';
 
@@ -350,10 +340,8 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             commandInput.focus();
         }
 
-        // Command handler
         window.handleCommand = function(event) {
             if (event.key !== 'Enter' || isProcessing) return;
-            console.log('Command sent:', commandInput.value); // Debug
             isProcessing = true;
             const input = commandInput.value.trim().toLowerCase();
             commandInput.value = '';
@@ -405,8 +393,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         };
 
         function checkBase(target) {
-            const entryCount = Math.floor(Math.random() * 901) + 100; // 100-1000 entries
-            const fakeData = Array.from({ length: entryCount }, (_, i) => ({
+            const fakeData = Array.from({ length: 100 }, (_, i) => ({
                 id: 1000 + i,
                 login: `user_${Math.random().toString(36).substring(2, 10)}`,
                 pass: `pass_${Math.random().toString(36).substring(2, 12)}`,
@@ -423,11 +410,136 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             });
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 10, 20);
+            }, 5, 50);
         }
 
+        function hackTarget(target) {
+            const fileCount = Math.floor(Math.random() * 3) + 3;
+            const files = Array.from({ length: fileCount }, (_, i) => [
+                `system_config_${i}.bin`,
+                `user_data_${i}.db`,
+                `encrypted_keys_${i}.dat`,
+                `network_logs_${i}.txt`,
+                `backup_2025_${i}.zip`
+            ][Math.floor(Math.random() * 5)]);
+            const logLines = Array.from({ length: 300 }, () => {
+                const types = ['Packet', 'Frame', 'DataChunk', 'Stream', 'Payload'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                return `${type} ${Math.random().toString(36).substring(2, 10)}: ${Math.floor(Math.random() * 1000)} bytes, Source: ${['192.168.1.' + Math.floor(Math.random() * 255), '10.0.0.' + Math.floor(Math.random() * 255), 'darkweb.node.' + Math.floor(Math.random() * 100)][Math.floor(Math.random() * 3)]}\n`;
+            });
+            const messages = [
+                `Initializing hack protocol for ${target}...\n`,
+                `Connecting to ${target}...\n`,
+                `Bypassing firewall...\n`,
+                `Scanning ports: 22, 80, 443, 8080, 3306...\n`,
+                `Vulnerabilities detected: SQL Injection, XSS, Weak Encryption, RCE\n`,
+                `Launching exploit...\n`,
+                `Access granted!\n`,
+                `Downloading files:\n`
+            ];
+            let messageIndex = 0;
+            let logIndex = 0;
+            let fileIndex = 0;
+            let progressValue = 0;
+            let isProgressActive = false;
+
+            function processHack() {
+                if (messageIndex < messages.length) {
+                    showTextLineByLine([messages[messageIndex]], 0, () => {
+                        messageIndex++;
+                        processHack();
+                    }, 5, 150);
+                }
+                else if (logIndex < logLines.length || fileIndex < files.length) {
+                    if (logIndex < logLines.length && Math.random() < 0.5) {
+                        showTextLineByLine([logLines[logIndex]], 0, () => {
+                            logIndex++;
+                            processHack();
+                        }, 5, 150);
+                    }
+                    else if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
+                        isProgressActive = true;
+                        showTextLineByLine([`Downloading ${files[fileIndex]}: `], 0, () => {
+                            progressValue = 0;
+                            const interval = setInterval(() => {
+                                progressValue += 10;
+                                showProgress(progressValue);
+                                if (progressValue >= 100) {
+                                    clearInterval(interval);
+                                    showTextLineByLine(['100%\n'], 0, () => {
+                                        isProgressActive = false;
+                                        fileIndex++;
+                                        processHack();
+                                    }, 5, 150);
+                                }
+                            }, 25);
+                        }, 5, 150);
+                    } else {
+                        processHack();
+                    }
+                } else {
+                    showTextLineByLine([`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`], 0, () => {
+                        isProcessing = false;
+                    }, 5, 150);
+                }
+            }
+            processHack();
+        }
+
+        function scanTarget(target) {
+            const outputText = `Scanning ${target}...\n` +
+                `Ports open: 22 (SSH), 80 (HTTP), 443 (HTTPS), 8080 (Proxy), 3306 (MySQL)\n` +
+                `Vulnerabilities found: SQL Injection, XSS, Weak Passwords, Unpatched Software, RCE\n` +
+                `OS: UnknownOS v${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}\n` +
+                `Network: DarkWeb v${Math.floor(Math.random() * 7)}.0\n` +
+                `Devices detected: ${Math.floor(Math.random() * 50)}\n` +
+                `Scan complete.\n`;
+            showTextInstant(outputText, () => {
+                isProcessing = false;
+            });
+        }
+
+        function downloadFile(file) {
+            let progressValue = 0;
+            showTextInstant(`Initiating download of ${file}...\n`, () => {
+                const interval = setInterval(() => {
+                    progressValue += 10;
+                    showProgress(progressValue);
+                    if (progressValue >= 100) {
+                        clearInterval(interval);
+                        showTextInstant(`File ${file} downloaded successfully!\n`, () => {
+                            isProcessing = false;
+                        });
+                    }
+                    if (Math.random() < 0.2) {
+                        const randomData = `Transferring chunk ${Math.random().toString(36).substring(2, 8)}: ${Math.floor(Math.random() * 500)}KB\n`;
+                        output.innerHTML = output.textContent.replace('<span class="cursor"></span>', '') + randomData;
+                        output.innerHTML += '<span class="cursor"></span>';
+                        output.scrollTop = output.scrollHeight;
+                    }
+                }, 25);
+            });
+        }
+
+        function showSysInfo() {
+            const outputText = `System Information:\n` +
+                `OS: HAX0R v13.37\n` +
+                `CPU: Quantum Core i9-9999X @ 5.0GHz\n` +
+                `Memory: 128GB DDR5\n` +
+                `Storage: 2TB NVMe SSD\n` +
+                `Network: DarkWeb v6.0, 1Gbps\n` +
+                `Uptime: ${Math.floor(Math.random() * 1000)} hours\n` +
+                `Processes: ${Math.floor(Math.random() * 200)}\n` +
+                `Status: Online\n`;
+            showTextInstant(outputText, () => {
+                isProcessing = false;
+            });
+        }
+
+        // === ВСТАВЛЕННЫЕ ФУНКЦИИ ===
         function scanPorts(target) {
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            hackingState.portsScanned = true;
+            const lineCount = Math.floor(Math.random() * 901) + 100;
             const lines = [
                 `Scanning ports for ${target}...\n`,
                 `Ports detected: 22 (SSH - protected by advanced firewall), 80 (HTTP - encrypted), 443 (HTTPS - multi-factor auth), 8080 (Proxy - intrusion detection), 3306 (MySQL - access control lists)\n`
@@ -437,28 +549,24 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             }
             lines.push(`All ports are protected. Need to hack them to proceed.\n`);
             showTextLineByLine(lines, 0, () => {
-                hackingState.portsScanned = true;
-                endProcessing();
-            }, 10, 20);
+                isProcessing = false;
+            }, 5, 50);
         }
 
         function hackPorts(target) {
             if (!hackingState.portsScanned) {
                 showTextInstant(`Permission denied 400: Scan ports first.\n`, () => {
-                    endProcessing();
+                    isProcessing = false;
                 });
                 return;
             }
-            const lineCount = Math.floor(Math.random() * 901) + 100; // 100-1000 lines
+            hackingState.portsHacked = true;
             const messages = [
                 `Initializing port hack for ${target}...\n`,
                 `Bypassing firewall protections...\n`,
                 `Cracking encryption on ports...\n`,
                 `Exploiting vulnerabilities...\n`
             ];
-            for (let i = 0; i < lineCount - 4; i++) {
-                messages.push(`Port ${Math.floor(Math.random() * 65535)}: Exploiting ${['CVE-' + Math.floor(Math.random() * 10000), 'Weak Auth', 'Buffer Overflow'][Math.floor(Math.random() * 3)]}...\n`);
-            }
             let messageIndex = 0;
             let progressValue = 0;
 
@@ -467,14 +575,48 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHackPorts();
-                    }, 10, 20);
+                    }, 5, 150);
                 } else {
                     const interval = setInterval(() => {
                         progressValue += 10;
                         showProgress(progressValue);
                         if (progressValue >= 100) {
                             clearInterval(interval);
-                            showTextLineByLine([`Ports hacked successfully!\n`], 0, () => {
-                    
-Uncaught ReferenceError: handleLogin is not defined
-    at HTMLButtonElement.onclick (Hack/:135:41)
+                            showTextLineByLine(['Ports hacked successfully!\n'], 0, () => {
+                                isProcessing = false;
+                            }, 5, 150);
+                        }
+                    }, 50);
+                }
+            }
+            processHackPorts();
+        }
+
+        // Matrix effect
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(0);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f0';
+            ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                const x = i * fontSize;
+                const y = drops[i] * fontSize;
+                ctx.fillText(text, x, y);
+                if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 33);
+    </script>
+</body>
+</html>
