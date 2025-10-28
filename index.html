@@ -195,6 +195,12 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             registerEmail.value = '';
             registerPassword.value = '';
         };
+        let userSubscribe = 'default';
+        const subscribeConfig = {
+            'default': { lineDelay: 300, batchSize: 1, minDbAttempts: 3, maxDbAttempts: 10 },
+            'pro': { lineDelay: 100, batchSize: 1, minDbAttempts: 1, maxDbAttempts: 5 },
+            'platinum': { lineDelay: 50, batchSize: 1, minDbAttempts: 1, maxDbAttempts: 3 }
+        };
         window.handleLogin = async function() {
             const email = loginEmail.value.trim();
             const password = loginPassword.value.trim();
@@ -212,6 +218,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     await auth.signOut();
                     return;
                 }
+                userSubscribe = (snapshot.val().subscribe || 'default').toLowerCase();
                 loginError.textContent = '';
                 loginContainer.style.display = 'none';
                 terminal.style.display = 'block';
@@ -234,8 +241,10 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 const user = userCredential.user;
                 await set(ref(db, `users/${user.uid}`), {
                     hacked: [],
-                    banned: 0
+                    banned: 0,
+                    subscribe: 'default'
                 });
+                userSubscribe = 'default';
                 registerError.textContent = '';
                 registerContainer.style.display = 'none';
                 terminal.style.display = 'block';
@@ -289,7 +298,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             outputBuffer = '';
             if (callback) callback();
         }
-        function showTextLineByLine(lines, index = 0, callback, batchSize = 10, delay = 20) {
+        function showTextLineByLine(lines, index = 0, callback, batchSize = 1, delay = 300) {
             if (index < lines.length) {
                 const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
                 outputBuffer += batch.join('');
@@ -334,43 +343,44 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             if (['scanports', 'hackports', 'connectport', 'hackdatabase', 'connectdatabase', 'scandatabase', 'hackadditionalprotection', 'downloadfilesdatabase', 'hack'].includes(cmd)) {
                 checkAndSetTarget(target);
             }
+            const config = subscribeConfig[userSubscribe.toLowerCase()] || subscribeConfig['default'];
             if (cmd === 'checkbase') {
-                checkBase(target);
+                checkBase(target, config);
             } else if (cmd === 'hack') {
-                hackTarget(target);
+                hackTarget(target, config);
             } else if (cmd === 'scan') {
-                scanTarget(target);
+                scanTarget(target, config);
             } else if (cmd === 'download') {
-                downloadFile(target);
+                downloadFile(target, config);
             } else if (cmd === 'sysinfo') {
-                showSysInfo();
+                showSysInfo(config);
             } else if (cmd === 'clear') {
                 output.textContent = '';
                 output.innerHTML += '<span class="cursor"></span>';
                 endProcessing();
             } else if (cmd === 'scanports') {
-                scanPorts(target);
+                scanPorts(target, config);
             } else if (cmd === 'hackports') {
-                hackPorts(target);
+                hackPorts(target, config);
             } else if (cmd === 'connectport') {
-                connectPort(target);
+                connectPort(target, config);
             } else if (cmd === 'hackdatabase') {
-                hackDataBase(target);
+                hackDataBase(target, config);
             } else if (cmd === 'connectdatabase') {
-                connectDataBase(target);
+                connectDataBase(target, config);
             } else if (cmd === 'scandatabase') {
-                scanDataBase(target);
+                scanDataBase(target, config);
             } else if (cmd === 'hackadditionalprotection') {
-                hackAdditionalProtection(target);
+                hackAdditionalProtection(target, config);
             } else if (cmd === 'downloadfilesdatabase') {
-                downloadFilesDataBase(target);
+                downloadFilesDataBase(target, config);
             } else {
                 showTextInstant(`Unknown command: ${cmd}\n`, () => {
                     endProcessing();
                 });
             }
         };
-        function checkBase(target) {
+        function checkBase(target, config) {
             const entryCount = Math.floor(Math.random() * 1901) + 500; // Increased: 500-2400 entries
             const fakeData = Array.from({ length: entryCount }, (_, i) => ({
                 id: 1000 + i,
@@ -389,9 +399,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             });
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function hackTarget(target) {
+        function hackTarget(target, config) {
             const fileCount = Math.floor(Math.random() * 3) + 3;
             const files = Array.from({ length: fileCount }, (_, i) => [
                 `system_config_${i}.bin`,
@@ -425,14 +435,14 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     showTextLineByLine([messages[messageIndex]], 0, () => {
                         messageIndex++;
                         processHack();
-                    }, 5, 150);
+                    }, config.batchSize, config.lineDelay);
                 }
                 else if (logIndex < logLines.length || fileIndex < files.length) {
                     if (logIndex < logLines.length && Math.random() < 0.5) {
                         showTextLineByLine([logLines[logIndex]], 0, () => {
                             logIndex++;
                             processHack();
-                        }, 5, 150);
+                        }, config.batchSize, config.lineDelay);
                     }
                     else if (fileIndex < files.length && !isProgressActive && Math.random() < 0.3) {
                         isProgressActive = true;
@@ -447,22 +457,22 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                                         isProgressActive = false;
                                         fileIndex++;
                                         processHack();
-                                    }, 5, 150);
+                                    }, config.batchSize, config.lineDelay);
                                 }
                             }, 25);
-                        }, 5, 150);
+                        }, config.batchSize, config.lineDelay);
                     } else {
                         processHack();
                     }
                 } else {
                     showTextLineByLine([`All ${fileCount} files downloaded! HACK SUCCESSFUL!\n`], 0, () => {
                         endProcessing();
-                    }, 5, 150);
+                    }, config.batchSize, config.lineDelay);
                 }
             }
             processHack();
         }
-        function scanTarget(target) {
+        function scanTarget(target, config) {
             const lineCount = Math.floor(Math.random() * 501) + 100; // Increased: 100-600 lines
             const lines = [`Scanning ${target}...\n`];
             for (let i = 0; i < lineCount - 1; i++) {
@@ -475,9 +485,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             lines.push(`Scan complete.\n`);
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function downloadFile(file) {
+        function downloadFile(file, config) {
             let progressValue = 0;
             const logCount = Math.floor(Math.random() * 501) + 200; // Increased: 200-700 logs
             showTextInstant(`Initiating download of ${file}...\n`, () => {
@@ -499,9 +509,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 }, 25);
             });
             const logs = Array.from({ length: logCount }, () => `Download log: ${Math.random().toString(36).substring(2, 10)}\n`);
-            showTextLineByLine(logs, 0, () => {}, 5, 50);
+            showTextLineByLine(logs, 0, () => {}, config.batchSize, config.lineDelay);
         }
-        function showSysInfo() {
+        function showSysInfo(config) {
             const lineCount = Math.floor(Math.random() * 201) + 50; // Increased: 50-250 lines
             const lines = [`System Information:\n`];
             for (let i = 0; i < lineCount - 1; i++) {
@@ -516,9 +526,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             }
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function scanPorts(target) {
+        function scanPorts(target, config) {
             const lineCount = Math.floor(Math.random() * 901) + 100;
             const lines = [
                 `Scanning ports for ${target}...\n`,
@@ -531,9 +541,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.portsScanned = true;
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function hackPorts(target) {
+        function hackPorts(target, config) {
             if (!hackingState.portsScanned) {
                 showTextInstant(`Permission denied 400: Scan ports first.\n`, () => {
                     endProcessing();
@@ -554,9 +564,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(messages, 0, () => {
                 hackingState.portsHacked = true;
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function connectPort(target) {
+        function connectPort(target, config) {
             if (!hackingState.portsHacked) {
                 showTextInstant(`Permission denied: Hack ports first.\n`, () => {
                     endProcessing();
@@ -576,9 +586,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.portsConnected = true;
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function hackDataBase(target) {
+        function hackDataBase(target, config) {
             if (!hackingState.portsConnected) {
                 showTextInstant(`Permission denied: Connect to ports first.\n`, () => {
                     endProcessing();
@@ -586,7 +596,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 return;
             }
             if (!hackingState.requiredDbAttempts) {
-                hackingState.requiredDbAttempts = Math.floor(Math.random() * 5) + 1; // 1-5 attempts needed
+                hackingState.requiredDbAttempts = Math.floor(Math.random() * (config.maxDbAttempts - config.minDbAttempts + 1)) + config.minDbAttempts;
             }
             hackingState.dbHackAttempts++;
             const lines = [
@@ -600,9 +610,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             }
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function connectDataBase(target) {
+        function connectDataBase(target, config) {
             if (!hackingState.dbHacked) {
                 showTextInstant(`Permission denied: Hack database first.\n`, () => {
                     endProcessing();
@@ -621,9 +631,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.dbConnected = true;
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function scanDataBase(target) {
+        function scanDataBase(target, config) {
             if (!hackingState.dbConnected) {
                 showTextInstant(`Permission denied: Connect to database first.\n`, () => {
                     endProcessing();
@@ -644,9 +654,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             showTextLineByLine(lines, 0, () => {
                 hackingState.dbScanned = true;
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function hackAdditionalProtection(target) {
+        function hackAdditionalProtection(target, config) {
             if (!hackingState.dbScanned) {
                 showTextInstant(`Permission denied: Scan database first.\n`, () => {
                     endProcessing();
@@ -681,9 +691,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             hackingState.protectionsHacked = true;
             showTextLineByLine(lines, 0, () => {
                 endProcessing();
-            }, 5, 50);
+            }, config.batchSize, config.lineDelay);
         }
-        function downloadFilesDataBase(target) {
+        function downloadFilesDataBase(target, config) {
             if (!hackingState.protectionsHacked) {
                 showTextInstant(`Permission denied: Hack all additional protections first.\n`, () => {
                     endProcessing();
@@ -696,7 +706,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 });
                 return;
             }
-            const fileCount = Math.floor(Math.random() * 10) + 5; // Increased: 5-14 files
+            const fileCount = Math.floor(Math.random() * 21) + 10; // Increased: 10-30 files
             const files = Array.from({ length: fileCount }, (_, i) => `db_file_${Math.random().toString(36).substring(2, 8)}.dat`);
             const messages = [
                 `Initiating download of database files from ${target}...\n`
@@ -715,18 +725,18 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                                 showTextLineByLine(['100%\n'], 0, () => {
                                     fileIndex++;
                                     processDownload();
-                                }, 5, 50);
+                                }, config.batchSize, config.lineDelay);
                             }
                         }, 25);
-                    }, 5, 50);
+                    }, config.batchSize, config.lineDelay);
                 } else {
                     showTextLineByLine([`All ${fileCount} database files downloaded successfully!\n`], 0, () => {
                         hackingState.filesDownloaded = true;
                         endProcessing();
-                    }, 5, 50);
+                    }, config.batchSize, config.lineDelay);
                 }
             }
-            showTextLineByLine(messages, 0, processDownload, 5, 50);
+            showTextLineByLine(messages, 0, processDownload, config.batchSize, config.lineDelay);
         }
         // Matrix effect
         const canvas = document.getElementById('matrix');
