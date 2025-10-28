@@ -34,7 +34,7 @@
         }
         .terminal {
             max-width: 800px;
-            display: none;
+            display: none; /* Hidden until login */
         }
         .auth-container h2 {
             margin: 0 0 20px;
@@ -197,25 +197,25 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             platinum: { delay: 10, minAttempts: 1, maxAttempts: 3, hackSuccessChance: 0.95 }
         };
 
-        let currentSubscription = "default";
-
-        // Toggle forms
-        window.showRegister = () => {
+        // Toggle between login and register forms
+        window.showRegister = function() {
             loginContainer.style.display = 'none';
             registerContainer.style.display = 'block';
             loginError.textContent = '';
-            loginEmail.value = loginPassword.value = '';
+            loginEmail.value = '';
+            loginPassword.value = '';
         };
 
-        window.showLogin = () => {
+        window.showLogin = function() {
             registerContainer.style.display = 'none';
             loginContainer.style.display = 'block';
             registerError.textContent = '';
-            registerEmail.value = registerPassword.value = '';
+            registerEmail.value = '';
+            registerPassword.value = '';
         };
 
         // Handle login
-        window.handleLogin = async () => {
+        window.handleLogin = async function() {
             const email = loginEmail.value.trim();
             const password = loginPassword.value.trim();
             if (!email || !password) {
@@ -225,6 +225,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
+                // Check if user is banned
                 const userRef = ref(db, `users/${user.uid}`);
                 const snapshot = await get(userRef);
                 if (snapshot.exists() && snapshot.val().banned === 1) {
@@ -232,18 +233,19 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                     await auth.signOut();
                     return;
                 }
-                currentSubscription = snapshot.val().subscription || "default";
                 loginError.textContent = '';
                 loginContainer.style.display = 'none';
                 terminal.style.display = 'block';
-                setTimeout(() => commandInput.focus(), 100);
+                setTimeout(() => {
+                    commandInput.focus();
+                }, 100);
             } catch (error) {
                 loginError.textContent = `Error: ${error.message}`;
             }
         };
 
         // Handle registration
-        window.handleRegister = async () => {
+        window.handleRegister = async function() {
             const email = registerEmail.value.trim();
             const password = registerPassword.value.trim();
             if (!email || !password) {
@@ -253,16 +255,18 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
+                // Create user in Realtime Database with default subscription
                 await set(ref(db, `users/${user.uid}`), {
                     hacked: [],
                     banned: 0,
                     subscription: "default"
                 });
-                currentSubscription = "default";
                 registerError.textContent = '';
                 registerContainer.style.display = 'none';
                 terminal.style.display = 'block';
-                setTimeout(() => commandInput.focus(), 100);
+                setTimeout(() => {
+                    commandInput.focus();
+                }, 100);
             } catch (error) {
                 registerError.textContent = `Error: ${error.message}`;
             }
@@ -286,6 +290,19 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             protectionsHacked: false,
             filesDownloaded: false
         };
+
+        let currentSubscription = "default"; // Default until login
+
+        // Update subscription on login
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                const userRef = ref(db, `users/${user.uid}`);
+                const snapshot = await get(userRef);
+                if (snapshot.exists()) {
+                    currentSubscription = snapshot.val().subscription || "default";
+                }
+            }
+        });
 
         function resetState() {
             hackingState.portsScanned = false;
@@ -318,16 +335,16 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         }
 
         function showTextLineByLine(lines, index = 0, callback, batchSize = 10, delay = subscriptionSettings[currentSubscription].delay) {
-            if (index >= lines.length) {
+            if (index < lines.length) {
+                const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
+                outputBuffer += batch.join('');
+                if (index % batchSize === 0 || index === lines.length - 1) {
+                    flushBuffer();
+                }
+                setTimeout(() => showTextLineByLine(lines, index + batchSize, callback, batchSize, delay), delay);
+            } else {
                 flushBuffer(callback);
-                return;
             }
-            const batch = lines.slice(index, Math.min(index + batchSize, lines.length));
-            outputBuffer += batch.join('');
-            if (index % batchSize === 0 || index + batchSize >= lines.length) {
-                flushBuffer();
-            }
-            setTimeout(() => showTextLineByLine(lines, index + batchSize, callback, batchSize, delay), delay);
         }
 
         function showProgress(percentage, callback) {
@@ -357,6 +374,7 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
         // Command handler
         window.handleCommand = function(event) {
             if (event.key !== 'Enter' || isProcessing) return;
+            console.log('Command sent:', commandInput.value);
             isProcessing = true;
             const input = commandInput.value.trim().toLowerCase();
             commandInput.value = '';
@@ -370,30 +388,42 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 checkAndSetTarget(target);
             }
 
-            try {
-                if (cmd === 'checkbase') checkBase(target);
-                else if (cmd === 'hack') hackTarget(target);
-                else if (cmd === 'scan') scanTarget(target);
-                else if (cmd === 'download') downloadFile(target);
-                else if (cmd === 'sysinfo') showSysInfo();
-                else if (cmd === 'clear') { output.textContent = ''; output.innerHTML += '<span class="cursor"></span>'; endProcessing(); }
-                else if (cmd === 'scanports') scanPorts(target);
-                else if (cmd === 'hackports') hackPorts(target);
-                else if (cmd === 'connectport') connectPort(target);
-                else if (cmd === 'hackdatabase') hackDataBase(target);
-                else if (cmd === 'connectdatabase') connectDataBase(target);
-                else if (cmd === 'scandatabase') scanDataBase(target);
-                else if (cmd === 'hackadditionalprotection') hackAdditionalProtection(target);
-                else if (cmd === 'downloadfilesdatabase') downloadFilesDataBase(target);
-                else {
-                    showTextInstant(`Unknown command: ${cmd}\n`, endProcessing);
-                }
-            } catch (err) {
-                showTextInstant(`Error: ${err.message}\n`, endProcessing);
+            if (cmd === 'checkbase') {
+                checkBase(target);
+            } else if (cmd === 'hack') {
+                hackTarget(target);
+            } else if (cmd === 'scan') {
+                scanTarget(target);
+            } else if (cmd === 'download') {
+                downloadFile(target);
+            } else if (cmd === 'sysinfo') {
+                showSysInfo();
+            } else if (cmd === 'clear') {
+                output.textContent = '';
+                output.innerHTML += '<span class="cursor"></span>';
+                endProcessing();
+            } else if (cmd === 'scanports') {
+                scanPorts(target);
+            } else if (cmd === 'hackports') {
+                hackPorts(target);
+            } else if (cmd === 'connectport') {
+                connectPort(target);
+            } else if (cmd === 'hackdatabase') {
+                hackDataBase(target);
+            } else if (cmd === 'connectdatabase') {
+                connectDataBase(target);
+            } else if (cmd === 'scandatabase') {
+                scanDataBase(target);
+            } else if (cmd === 'hackadditionalprotection') {
+                hackAdditionalProtection(target);
+            } else if (cmd === 'downloadfilesdatabase') {
+                downloadFilesDataBase(target);
+            } else {
+                showTextInstant(`Unknown command: ${cmd}\n`, () => {
+                    endProcessing();
+                });
             }
         };
-
-        // === КОМАНДЫ (все вызовы showTextLineByLine с 5 аргументами) ===
 
         function checkBase(target) {
             const entryCount = Math.floor(Math.random() * 901) + 100;
@@ -412,7 +442,9 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
             fakeData.forEach(entry => {
                 lines.push(`ID: ${entry.id}, Login: ${entry.login}, Password: ${entry.pass}, Email: ${entry.email}, IP: ${entry.ip}, Last Login: ${entry.lastLogin}, Role: ${entry.role}, Status: ${entry.status}, Data: ${entry.dataSize}\n`);
             });
-            showTextLineByLine(lines, 0, endProcessing, 10, subscriptionSettings[currentSubscription].delay);
+            showTextLineByLine(lines, 0, () => {
+                endProcessing();
+            }, 10);
         }
 
         function scanPorts(target) {
@@ -422,15 +454,20 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `Ports detected: 22 (SSH - protected by advanced firewall), 80 (HTTP - encrypted), 443 (HTTPS - multi-factor auth), 8080 (Proxy - intrusion detection), 3306 (MySQL - access control lists)\n`
             ];
             for (let i = 0; i < lineCount - 2; i++) {
-                lines.push(`Port ${Math.floor(Math samym() * 65535)}: ${['open', 'closed', 'filtered'][Math.floor(Math.random() * 3)]} - ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} [${['encrypted', 'firewalled', 'rate-limited'][Math.floor(Math.random() * 3)]}]\n`);
+                lines.push(`Port ${Math.floor(Math.random() * 65535)}: ${['open', 'closed', 'filtered'][Math.floor(Math.random() * 3)]} - ${['TCP', 'UDP'][Math.floor(Math.random() * 2)]} [${['encrypted', 'firewalled', 'rate-limited'][Math.floor(Math.random() * 3)]}]\n`);
             }
             lines.push(`All ports are protected. Need to hack them to proceed.\n`);
-            showTextLineByLine(lines, 0, () => { hackingState.portsScanned = true; endProcessing(); }, 10, subscriptionSettings[currentSubscription].delay);
+            showTextLineByLine(lines, 0, () => {
+                hackingState.portsScanned = true;
+                endProcessing();
+            }, 10);
         }
 
         function hackPorts(target) {
             if (!hackingState.portsScanned) {
-                showTextInstant(`Permission denied 400: Scan ports first.\n`, endProcessing);
+                showTextInstant(`Permission denied 400: Scan ports first.\n`, () => {
+                    endProcessing();
+                });
                 return;
             }
             const lineCount = Math.floor(Math.random() * 901) + 100;
@@ -441,19 +478,4 @@ Type a command (e.g., 'checkbase <target>', 'hack <target>', 'scan <target>', 'd
                 `Exploiting vulnerabilities...\n`
             ];
             for (let i = 0; i < lineCount - 4; i++) {
-                messages.push(`Port ${Math.floor(Math.random() * 65535)}: Exploiting ${['CVE-' + Math.floor(Math.random() * 10000), 'Weak Auth', 'Buffer Overflow'][Math.floor(Math.random() * 3)]}...\n`);
-            }
-            let messageIndex = 0;
-            let progressValue = 0;
-
-            function processHackPorts() {
-                if (messageIndex < messages.length) {
-                    showTextLineByLine([messages[messageIndex]], 0, () => {
-                        messageIndex++;
-                        processHackPorts();
-                    }, 10, subscriptionSettings[currentSubscription].delay);
-                } else {
-                    const interval = setInterval(() => {
-                        progressValue += 10;
-                        showProgress(progressValue);
-                   
+                messages.push(
